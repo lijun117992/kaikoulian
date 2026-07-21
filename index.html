@@ -1841,45 +1841,6 @@ const TRAINING_VIDEOS = [
     }
   }
 
-  const TRAINING_VIDEOS = [
-    { category: 'follow', name: '【跟读示范】口才训练·表达流畅度与吐字（B站精选）', platform: 'bilibili', bvid: 'BV1aS4y1G7iZ', subtitle: '跟随标准朗读节奏，练习语速控制与吐字清晰度' },
-    { category: 'follow', name: '【影子跟读】讲话断句与重音技巧（B站精选）', platform: 'bilibili', bvid: 'BV1nT4y1M7qh', subtitle: '影子跟读法核心训练，同步模仿语调与停顿' },
-    { category: 'recite', name: '【金句背诵】《道德经》经典名篇诵读带字幕', platform: 'bilibili', bvid: 'BV1Wb411n7LY', subtitle: '配合字幕与释义背诵道德经经典章节' },
-    { category: 'recite', name: '【金句背诵】《论语》核心名句标准朗读', platform: 'bilibili', bvid: 'BV1rt411V7KR', subtitle: '论语经典名篇标准朗读示范与化用' },
-    { category: 'read', name: '【经典诵读】古今名家名篇散文朗诵合集', platform: 'bilibili', bvid: 'BV1Ks411575R', subtitle: '名家朗诵古今名篇，感受语言逻辑与美感' },
-    { category: 'read', name: '【经典诵读】国学经典古诗文韵律诵读', platform: 'bilibili', bvid: 'BV1vb411q7cZ', subtitle: '经典古诗词标准诵读，培养语感韵律' }
-  ];
-
-  function populateVideoSelect(category) {
-    const select = document.getElementById('routine-video-select');
-    if (!select) return;
-    select.innerHTML = '';
-    const filtered = TRAINING_VIDEOS.filter(v => v.category === category);
-    const list = filtered.length > 0 ? filtered : TRAINING_VIDEOS;
-    list.forEach(v => {
-      const idx = TRAINING_VIDEOS.indexOf(v);
-      const opt = document.createElement('option');
-      opt.value = idx;
-      opt.textContent = v.name;
-      select.appendChild(opt);
-    });
-    switchRoutineVideo();
-  }
-
-  function switchRoutineVideo() {
-    const select = document.getElementById('routine-video-select');
-    if (!select) return;
-    const idx = parseInt(select.value) || 0;
-    const video = TRAINING_VIDEOS[idx];
-    if (!video) return;
-    const iframe = document.getElementById('routine-video-iframe');
-    if (iframe && video.bvid) {
-      iframe.src = 'https://player.bilibili.com/player.html?bvid=' + video.bvid + '&danmaku=0&autoplay=0&high_quality=1';
-    }
-    const sub = document.getElementById('routine-video-subtitle');
-    if (sub && video.subtitle) sub.textContent = video.subtitle;
-  }
-
   function startRoutineStep(stepKey) {
     document.getElementById('routine-studio').style.display = 'block';
     document.getElementById('routine-algo-report').style.display = 'none';
@@ -1892,7 +1853,6 @@ const TRAINING_VIDEOS = [
     document.getElementById('routine-timer').innerText = '00:00.0';
     renderKaraokeText();
     document.getElementById('routine-studio').scrollIntoView({ behavior: 'smooth' });
-  }' });
   }
 
   // Automated Algorithmic Score Engine (No Self-Eval)
