@@ -1,0 +1,18 @@
+<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 600 400" width="100%" height="280">
+  <rect width="600" height="400" fill="#faf8f5" stroke="#e8e2d9" stroke-width="2"/>
+  <!-- Axis Line -->
+  <line x1="80" y1="200" x2="520" y2="200" stroke="#a39c93" stroke-width="2" stroke-dasharray="6"/>
+  <!-- Part A -->
+  <rect x="100" y="140" width="60" height="120" rx="10" fill="#ffffff" stroke="#c8956c" stroke-width="3"/>
+  <text x="110" y="130" font-size="14" font-weight="bold" fill="#c8956c">1. 尾盖</text>
+  <!-- Part B -->
+  <cylinder x="220" y="130"/>
+  <rect x="210" y="150" width="80" height="100" rx="4" fill="#ffffff" stroke="#2b2825" stroke-width="3"/>
+  <text x="220" y="130" font-size="14" font-weight="bold" fill="#2b2825">2. 核心筒</text>
+  <!-- Part C -->
+  <circle cx="370" cy="200" r="45" fill="#ffffff" stroke="#4a6741" stroke-width="3"/>
+  <text x="345" y="130" font-size="14" font-weight="bold" fill="#4a6741">3. 密封齿轮</text>
+  <!-- Part D -->
+  <polygon points="460,150 510,200 460,250" fill="#ffffff" stroke="#c04936" stroke-width="3"/>
+  <text x="460" y="130" font-size="14" font-weight="bold" fill="#c04936">4. 驱动头</text>
+</svg>

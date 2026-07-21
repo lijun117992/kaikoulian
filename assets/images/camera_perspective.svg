@@ -1,0 +1,11 @@
+<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 600 400" width="100%" height="280">
+  <rect width="600" height="400" fill="#faf8f5" stroke="#e8e2d9" stroke-width="2"/>
+  <!-- Camera Body -->
+  <rect x="180" y="150" width="240" height="150" rx="16" fill="#ffffff" stroke="#2b2825" stroke-width="4"/>
+  <rect x="240" y="110" width="120" height="40" rx="6" fill="#f7eedc" stroke="#2b2825" stroke-width="3"/>
+  <!-- Lens -->
+  <circle cx="300" cy="225" r="55" fill="#ffffff" stroke="#c8956c" stroke-width="5"/>
+  <circle cx="300" cy="225" r="35" fill="#f7eedc" stroke="#c8956c" stroke-width="3"/>
+  <circle cx="370" cy="130" r="10" fill="#c04936"/>
+  <text x="210" y="340" font-size="16" font-family="sans-serif" font-weight="bold" fill="#78726a">三点透视单反相机 (3-Point Camera)</text>
+</svg>

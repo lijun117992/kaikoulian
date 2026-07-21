@@ -1,0 +1,7 @@
+<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 600 400" width="100%" height="280">
+  <rect width="600" height="400" fill="#faf8f5" stroke="#e8e2d9" stroke-width="2"/>
+  <path d="M150 100 Q 250 50, 380 110 T 500 220 T 420 340 T 220 320 T 120 220 Z" fill="#f7eedc" stroke="#c8956c" stroke-width="4"/>
+  <circle cx="280" cy="180" r="6" fill="#c04936"/>
+  <text x="300" y="185" font-size="16" font-family="sans-serif" font-weight="bold" fill="#2b2825">中心行政区 (Center)</text>
+  <text x="200" y="370" font-size="14" font-family="sans-serif" fill="#78726a">【练习】观察边界转折角度并进行口头与手绘默写</text>
+</svg>
