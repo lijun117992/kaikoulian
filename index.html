@@ -442,6 +442,9 @@
   </style>
 </head>
 <body>
+<div id="toast-container" style="position: fixed; top: 20px; right: 20px; z-index: 9999; display: flex; flex-direction: column; gap: 8px; pointer-events: none;"></div>
+<canvas id="confetti-canvas" style="position: fixed; top: 0; left: 0; width: 100vw; height: 100vh; pointer-events: none; z-index: 9998;"></canvas>
+
 
 <div id="app-container">
   <!-- Desktop Sidebar -->
@@ -615,6 +618,21 @@
 
         <!-- Automatic Algorithm Score Report -->
         <div id="routine-algo-report" class="score-report" style="display: none;">
+          <div style="font-weight: 700; font-size: 16px; color: var(--accent-caramel); margin-bottom: 8px;">🧠 算法多维诊断报告与语音回放</div>
+          <div class="score-num" id="routine-score-val">88 分</div>
+          
+          <!-- Native Audio Playback -->
+          <div id="routine-audio-box" style="margin: 16px 0; display: none;">
+            <div style="font-size: 12px; color: var(--text-muted); margin-bottom: 6px;">🎙️ 您的原生录音回放：</div>
+            <audio id="routine-audio-player" controls style="width: 100%; max-width: 400px; height: 40px;"></audio>
+          </div>
+
+          <!-- Radar Chart -->
+          <div style="margin: 20px 0; text-align: center;">
+            <canvas id="routine-radar-canvas" width="280" height="240" style="max-width: 100%;"></canvas>
+          </div>
+
+          <div id="routine-score-breakdown" style="font-size: 13px; color: var(--text-muted); margin-bottom: 16px; text-align: left; background: var(--bg-card); padding: 12px; border-radius: var(--radius-md);"></div>
           <div>算法自动评估得分</div>
           <div class="score-num" id="routine-score-val">88 分</div>
           <div id="routine-score-breakdown" style="font-size: 13px; color: var(--text-muted); margin-bottom: 16px;"></div>
@@ -716,6 +734,21 @@
           </div>
 
           <div id="runner-algo-report" class="score-report" style="display: none;">
+          <div style="font-weight: 700; font-size: 16px; color: var(--accent-caramel); margin-bottom: 8px;">🧠 算法多维诊断报告与语音回放</div>
+          <div class="score-num" id="runner-score-val">88 分</div>
+
+          <!-- Native Audio Playback -->
+          <div id="runner-audio-box" style="margin: 16px 0; display: none;">
+            <div style="font-size: 12px; color: var(--text-muted); margin-bottom: 6px;">🎙️ 您的原生录音回放：</div>
+            <audio id="runner-audio-player" controls style="width: 100%; max-width: 400px; height: 40px;"></audio>
+          </div>
+
+          <!-- Radar Chart -->
+          <div style="margin: 20px 0; text-align: center;">
+            <canvas id="runner-radar-canvas" width="280" height="240" style="max-width: 100%;"></canvas>
+          </div>
+
+          <div id="runner-score-breakdown" style="font-size: 13px; color: var(--text-muted); margin-bottom: 16px; text-align: left; background: var(--bg-card); padding: 12px; border-radius: var(--radius-md);"></div>
             <div>算法自动评估得分</div>
             <div class="score-num" id="runner-score-val">85 分</div>
             <div id="runner-score-breakdown" style="font-size: 13px; color: var(--text-muted); margin-bottom: 16px;"></div>
@@ -808,6 +841,342 @@
 </nav>
 
 <script>
+
+/**
+ * 开口练 Core Modules
+ * Contains algorithms and engines for speech training web app.
+ */
+
+// 1. Levenshtein Distance 字符串相似度算法
+function calcLevenshteinSimilarity(str1, str2) {
+    if (!str1 || !str2) return 0;
+    if (str1 === str2) return 100;
+    
+    const len1 = str1.length;
+    const len2 = str2.length;
+    const matrix = Array(len2 + 1).fill(null).map(() => Array(len1 + 1).fill(null));
+
+    for (let i = 0; i <= len1; i++) matrix[0][i] = i;
+    for (let j = 0; j <= len2; j++) matrix[j][0] = j;
+
+    for (let j = 1; j <= len2; j++) {
+        for (let i = 1; i <= len1; i++) {
+            const indicator = str1[i - 1] === str2[j - 1] ? 0 : 1;
+            matrix[j][i] = Math.min(
+                matrix[j][i - 1] + 1, // deletion
+                matrix[j - 1][i] + 1, // insertion
+                matrix[j - 1][i - 1] + indicator // substitution
+            );
+        }
+    }
+
+    const distance = matrix[len2][len1];
+    const maxLen = Math.max(len1, len2);
+    return Math.round((1 - distance / maxLen) * 100);
+}
+
+// 2. 五维雷达图 Canvas 绘制引擎
+function drawRadarChart(canvasId, scores) {
+    const canvas = document.getElementById(canvasId);
+    if (!canvas) return;
+    const ctx = canvas.getContext('2d');
+    
+    const width = canvas.width;
+    const height = canvas.height;
+    const centerX = width / 2;
+    const centerY = height / 2;
+    const radius = Math.min(width, height) / 2 - 40; // padding
+
+    // Configuration
+    const axes = [
+        { name: 'Accuracy', key: 'accuracy' },
+        { name: 'Completeness', key: 'completeness' },
+        { name: 'Conciseness', key: 'conciseness' },
+        { name: 'Fluency', key: 'fluency' },
+        { name: 'Rhythm', key: 'rhythm' }
+    ];
+    const numAxes = axes.length;
+    const angleStep = (Math.PI * 2) / numAxes;
+
+    // Clear canvas
+    ctx.clearRect(0, 0, width, height);
+
+    // Draw grid polygons
+    const levels = 5;
+    ctx.strokeStyle = 'rgba(255, 255, 255, 0.2)';
+    ctx.lineWidth = 1;
+
+    for (let level = 1; level <= levels; level++) {
+        const r = radius * (level / levels);
+        ctx.beginPath();
+        for (let i = 0; i < numAxes; i++) {
+            const angle = i * angleStep - Math.PI / 2;
+            const x = centerX + r * Math.cos(angle);
+            const y = centerY + r * Math.sin(angle);
+            if (i === 0) ctx.moveTo(x, y);
+            else ctx.lineTo(x, y);
+        }
+        ctx.closePath();
+        ctx.stroke();
+    }
+
+    // Draw axes & labels
+    ctx.font = '12px Inter, sans-serif';
+    ctx.fillStyle = 'rgba(255, 255, 255, 0.7)';
+    ctx.textAlign = 'center';
+    ctx.textBaseline = 'middle';
+
+    for (let i = 0; i < numAxes; i++) {
+        const angle = i * angleStep - Math.PI / 2;
+        
+        // Axis line
+        ctx.beginPath();
+        ctx.moveTo(centerX, centerY);
+        ctx.lineTo(centerX + radius * Math.cos(angle), centerY + radius * Math.sin(angle));
+        ctx.stroke();
+
+        // Label
+        const labelRadius = radius + 20;
+        const labelX = centerX + labelRadius * Math.cos(angle);
+        const labelY = centerY + labelRadius * Math.sin(angle);
+        ctx.fillText(axes[i].name, labelX, labelY);
+    }
+
+    // Draw data polygon
+    ctx.beginPath();
+    const points = [];
+    for (let i = 0; i < numAxes; i++) {
+        const value = scores[axes[i].key] || 0;
+        const r = radius * (value / 100);
+        const angle = i * angleStep - Math.PI / 2;
+        const x = centerX + r * Math.cos(angle);
+        const y = centerY + r * Math.sin(angle);
+        points.push({x, y});
+        
+        if (i === 0) ctx.moveTo(x, y);
+        else ctx.lineTo(x, y);
+    }
+    ctx.closePath();
+
+    // Fill data area
+    ctx.fillStyle = 'rgba(200, 149, 108, 0.4)'; // #c8956c amber gold with transparency
+    ctx.fill();
+    ctx.strokeStyle = '#c8956c';
+    ctx.lineWidth = 2;
+    ctx.stroke();
+
+    // Draw data points with glow
+    ctx.shadowBlur = 10;
+    ctx.shadowColor = '#c8956c';
+    ctx.fillStyle = '#fff';
+    points.forEach(p => {
+        ctx.beginPath();
+        ctx.arc(p.x, p.y, 4, 0, Math.PI * 2);
+        ctx.fill();
+    });
+    ctx.shadowBlur = 0; // reset shadow
+}
+
+// 3. MediaRecorder 原生录音机包装类
+class AudioRecorder {
+    constructor() {
+        this.mediaRecorder = null;
+        this.audioChunks = [];
+        this.stream = null;
+        this.audioBlob = null;
+        this.audioUrl = null;
+    }
+
+    async start() {
+        try {
+            this.stream = await navigator.mediaDevices.getUserMedia({ audio: true });
+            this.mediaRecorder = new MediaRecorder(this.stream);
+            this.audioChunks = [];
+
+            this.mediaRecorder.ondataavailable = event => {
+                if (event.data.size > 0) {
+                    this.audioChunks.push(event.data);
+                }
+            };
+
+            this.mediaRecorder.start();
+            return true;
+        } catch (error) {
+            console.error('Failed to start recording:', error);
+            showToast('Microphone access denied or error occurred.', 'error');
+            return false;
+        }
+    }
+
+    stop() {
+        return new Promise((resolve, reject) => {
+            if (!this.mediaRecorder || this.mediaRecorder.state === 'inactive') {
+                return reject(new Error('Recorder is not active.'));
+            }
+
+            this.mediaRecorder.onstop = () => {
+                this.audioBlob = new Blob(this.audioChunks, { type: 'audio/webm' });
+                this.audioUrl = URL.createObjectURL(this.audioBlob);
+                
+                // Stop tracks to release microphone
+                if (this.stream) {
+                    this.stream.getTracks().forEach(track => track.stop());
+                }
+                resolve(this.audioBlob);
+            };
+
+            this.mediaRecorder.stop();
+        });
+    }
+
+    getAudioUrl() {
+        return this.audioUrl;
+    }
+}
+
+// 4. Confetti 撒花动画特效引擎 (Canvas)
+function launchConfetti(canvasId) {
+    const canvas = document.getElementById(canvasId);
+    if (!canvas) return;
+    const ctx = canvas.getContext('2d');
+    
+    let particles = [];
+    const colors = ['#c8956c', '#4facfe', '#00f2fe', '#fdfbfb', '#fbc2eb'];
+    let animationId;
+
+    function createParticle() {
+        return {
+            x: Math.random() * canvas.width,
+            y: Math.random() * canvas.height - canvas.height,
+            size: Math.random() * 8 + 4,
+            speedY: Math.random() * 3 + 2,
+            speedX: Math.random() * 2 - 1,
+            color: colors[Math.floor(Math.random() * colors.length)],
+            rotation: Math.random() * 360,
+            rotationSpeed: Math.random() * 10 - 5
+        };
+    }
+
+    for (let i = 0; i < 150; i++) {
+        particles.push(createParticle());
+    }
+
+    function render() {
+        ctx.clearRect(0, 0, canvas.width, canvas.height);
+        
+        let activeParticles = 0;
+        particles.forEach(p => {
+            p.y += p.speedY;
+            p.x += p.speedX;
+            p.rotation += p.rotationSpeed;
+            
+            if (p.y < canvas.height) {
+                activeParticles++;
+                ctx.save();
+                ctx.translate(p.x, p.y);
+                ctx.rotate(p.rotation * Math.PI / 180);
+                ctx.fillStyle = p.color;
+                ctx.fillRect(-p.size/2, -p.size/2, p.size, p.size);
+                ctx.restore();
+            }
+        });
+
+        if (activeParticles > 0) {
+            animationId = requestAnimationFrame(render);
+        } else {
+            ctx.clearRect(0, 0, canvas.width, canvas.height);
+        }
+    }
+
+    render();
+}
+
+// 5. Toast 消息提示系统
+function showToast(message, type = 'info') {
+    let container = document.getElementById('toast-container');
+    if (!container) {
+        container = document.createElement('div');
+        container.id = 'toast-container';
+        Object.assign(container.style, {
+            position: 'fixed',
+            top: '20px',
+            left: '50%',
+            transform: 'translateX(-50%)',
+            display: 'flex',
+            flexDirection: 'column',
+            gap: '10px',
+            zIndex: '9999',
+            pointerEvents: 'none'
+        });
+        document.body.appendChild(container);
+    }
+
+    const toast = document.createElement('div');
+    toast.textContent = message;
+    
+    // Style base
+    Object.assign(toast.style, {
+        padding: '12px 24px',
+        borderRadius: '8px',
+        color: '#fff',
+        fontFamily: 'Inter, sans-serif',
+        fontSize: '14px',
+        boxShadow: '0 4px 12px rgba(0,0,0,0.15)',
+        opacity: '0',
+        transform: 'translateY(-20px)',
+        transition: 'all 0.3s cubic-bezier(0.68, -0.55, 0.265, 1.55)'
+    });
+
+    // Type styles
+    switch (type) {
+        case 'success':
+            toast.style.background = 'linear-gradient(135deg, #43e97b 0%, #38f9d7 100%)';
+            break;
+        case 'warning':
+            toast.style.background = 'linear-gradient(135deg, #f6d365 0%, #fda085 100%)';
+            break;
+        case 'error':
+            toast.style.background = 'linear-gradient(135deg, #ff0844 0%, #ffb199 100%)';
+            break;
+        case 'info':
+        default:
+            toast.style.background = 'linear-gradient(135deg, #667eea 0%, #764ba2 100%)';
+            break;
+    }
+
+    container.appendChild(toast);
+
+    // Animate in
+    requestAnimationFrame(() => {
+        toast.style.opacity = '1';
+        toast.style.transform = 'translateY(0)';
+    });
+
+    // Animate out
+    setTimeout(() => {
+        toast.style.opacity = '0';
+        toast.style.transform = 'translateY(-20px)';
+        toast.addEventListener('transitionend', () => {
+            if (toast.parentNode) {
+                toast.parentNode.removeChild(toast);
+            }
+        });
+    }, 3000);
+}
+
+// Export for module systems if applicable
+if (typeof module !== 'undefined' && module.exports) {
+    module.exports = {
+        calcLevenshteinSimilarity,
+        drawRadarChart,
+        AudioRecorder,
+        launchConfetti,
+        showToast
+    };
+}
+
+
+
   if ('serviceWorker' in navigator) {
     navigator.serviceWorker.register('./sw.js').catch(err => console.log('SW reg fail:', err));
   }
@@ -1557,97 +1926,225 @@
 ];
 
   const MODULES_DATA = {
-    1: {
-      title: "模块一：复述与影子跟读",
-      items: [
-        { name: "素材1：电影解说三遍复述法", detail: "第一遍盲复述要点，第二遍0.75倍速静音字幕对齐，第三遍1倍速影子跟读。", img: "" },
-        { name: "素材2：新闻播报1分钟跟读", detail: "跟随酷狗式平滑歌词高亮特效，连续跟读 1 分钟不中断。", img: "" },
-        { name: "素材3：TED 演讲逻辑段落复述", detail: "提炼 3 个核心论点并用自己的话精简表达。", img: "" },
-        { name: "素材4：科普短视频因果链条复述", detail: "复述视频中的因果推导过程，确保无错无漏。", img: "" },
-        { name: "素材5：商业访谈重音与语气模仿", detail: "模仿嘉宾在阐述核心观点时的关键词重音与声调起伏。", img: "" },
-        { name: "素材6：故事梗概3分钟转述", detail: "阅读短故事，闭眼用 3 分钟向别人转述情节。", img: "" },
-        { name: "素材7：评书快板吐字训练", detail: "锻炼发音吐字清晰度与嘴唇肌肉力量。", img: "" },
-        { name: "素材8：辩论赛三段论立论复述", detail: "复述立论稿中的逻辑三段论与事实证据。", img: "" },
-        { name: "素材9：名家演讲段落背诵跟读", detail: "跟读名家经典演讲，感受气场与停顿。", img: "" },
-        { name: "素材10：对话录音听辨与复述", detail: "听两人对话录音，准确归纳双方争论焦点。", img: "" }
-      ]
+  "shadowing": [
+    {
+      "id": "s1",
+      "title": "晨读发声练习",
+      "desc": "基础气息与吐字训练，适合早晨唤醒声音。"
     },
-    2: {
-      title: "模块二：4D 精确描述",
-      items: [
-        { name: "素材1：标准户型图结构描述", detail: "运用四维分析法 (定义/MECE分类/对比/因果)，指引他人绘制墙、门、窗位置。", img: "./assets/images/house_plan.svg" },
-        { name: "素材2：行政区轮廓图默写", detail: "观察省份/国家轮廓，文字表述特征后脱离参考图默写。", img: "./assets/images/region_outline.svg" },
-        { name: "素材3：机械零部件爆炸图描述", detail: "准确描述爆炸图中各零件的空间三维位置。", img: "./assets/images/explosion_diagram.svg" },
-        { name: "素材4：两张相似图差异描述", detail: "用最少话语准确指出两图中的 5 处细微差异。", img: "./assets/images/house_plan.svg" },
-        { name: "素材5：记忆盲盒描述", detail: "观察照片 10 秒，闭眼精准复述物体位置。", img: "./assets/images/living_room.svg" },
-        { name: "素材6：电路原理图口头转换", detail: "将电路原理图转换为无歧义的口头说明。", img: "./assets/images/flowchart.svg" },
-        { name: "素材7：立体几何体组合描述", detail: "描述 3 个几何体拼接后的空间特征。", img: "./assets/images/isometric_cube.svg" },
-        { name: "素材8：产品外形结构设计说明", detail: "精确表达产品材质、倒角、按钮位置。", img: "./assets/images/camera_perspective.svg" },
-        { name: "素材9：室内客厅布局描述", detail: "按视线移动顺序描述客厅沙发与采光方位。", img: "./assets/images/living_room.svg" },
-        { name: "素材10：路线精准引导", detail: "纯用语言指引朋友从 A 点步行至 B 点。", img: "./assets/images/region_outline.svg" }
-      ]
+    {
+      "id": "s2",
+      "title": "新闻联播跟读",
+      "desc": "标准普通话字音与严肃播报语调训练。"
     },
-    3: {
-      title: "模块三：编码与脱稿转述",
-      items: [
-        { name: "素材1：“写-读-转述”脱稿训练", detail: "准备 300 字稿件，读 2 遍后扣下讲稿脱稿转述。", img: "" },
-        { name: "素材2：爆炸图零件命名规则设计", detail: "为 10 个零件起名，要求望文生义、高度简洁、明显区分。", img: "./assets/images/explosion_diagram.svg" },
-        { name: "素材3：文言文逐字因果拆解", detail: "拆解《鬼谷子》名句中的因果推导逻辑。", img: "" },
-        { name: "素材4：菜谱烹饪 SOP 编码", detail: "将复杂菜谱写成无错无漏的 SOP 操作步骤。", img: "" },
-        { name: "素材5：业务概念唯一代号系统", detail: "为 5 个业务概念赋予简短且唯一的代号规则。", img: "" },
-        { name: "素材6：项目风险 MECE 分类", detail: "按 MECE 原则进行不重不漏分类。", img: "./assets/images/flowchart.svg" },
-        { name: "素材7：金句场景化化用演练", detail: "将《道德经》名句融进沟通发言中。", img: "" },
-        { name: "素材8：抽象概念一句话定义", detail: "用一句话定义“什么是高效表达”。", img: "" },
-        { name: "素材9：软件功能模块编码拆解", detail: "为软件 8 个核心功能设计唯一编号系统。", img: "" },
-        { name: "素材10：流程图节点逻辑编码", detail: "将流程图节点写成严谨的逻辑判定语句。", img: "./assets/images/flowchart.svg" }
-      ]
+    {
+      "id": "s3",
+      "title": "纪录片旁白跟读",
+      "desc": "深沉浑厚的磁性声音塑造与情感投入。"
     },
-    4: {
-      title: "模块四：结构化即兴表达",
-      items: [
-        { name: "素材1：30秒电梯法则极速概括", detail: "限时 30 秒，使用“观点 + 黄金三点法”概括核心要点。", img: "" },
-        { name: "素材2：黄金三点法结构化分点", detail: "针对指定话题，从原因、方案、预期三点展开。", img: "" },
-        { name: "素材3：访谈姿态与眼神互动模仿", detail: "身体微前倾，眼神视线保持交流感，模仿主持人姿态。", img: "" },
-        { name: "素材4：1分钟产品电梯推介", detail: "用 60 秒向客户阐述产品核心价值。", img: "" },
-        { name: "素材5：突发危机公关回应", detail: "面对突发质疑，用严谨逻辑进行 2 分钟澄清。", img: "" },
-        { name: "素材6：把专业术语讲给门外汉", detail: "用通俗的比喻解释人工智能。", img: "" },
-        { name: "素材7：辩论赛三段论驳论", detail: "运用归纳与演绎逻辑寻找对方论述漏洞。", img: "" },
-        { name: "素材8：会议临时发言三步法", detail: "快速组织“认同观点 + 补充细节 + 建议动作”。", img: "" },
-        { name: "素材9：项目延期结构化汇报", detail: "说明现状 + 分析因果 + 提交替代方案。", img: "" },
-        { name: "素材10：90秒自我介绍亮点提炼", detail: "在 90 秒内展示个人核心优势与案例。", img: "" }
-      ]
+    {
+      "id": "s4",
+      "title": "TED演讲激情跟读",
+      "desc": "学习演讲者的语势起伏与手势配合。"
     },
-    5: {
-      title: "模块五：视觉透视表达",
-      items: [
-        { name: "素材1：1:1:1 立方块轴侧图手绘", detail: "手绘任意角度 1:1:1 比例立方块，要求尺寸准确。", img: "./assets/images/isometric_cube.svg" },
-        { name: "素材2：3点透视单反相机速写", detail: "参考实物绘制三点透视相机，部件齐全。", img: "./assets/images/camera_perspective.svg" },
-        { name: "素材3：客厅快速线条表现图", detail: "用简单线条绘制客厅空间结构与家具进深。", img: "./assets/images/living_room.svg" },
-        { name: "素材4：柱状图/饼图数据转换", detail: "将销售数据快速绘制成标准统计图形。", img: "./assets/images/flowchart.svg" },
-        { name: "素材5：业务流程图标准绘制", detail: "绘制包含起始、判定、动作节点的流程图。", img: "./assets/images/flowchart.svg" },
-        { name: "素材6：系统 UML 类图建模", detail: "绘制展示类与类之间继承/聚合关系的结构图。", img: "./assets/images/flowchart.svg" },
-        { name: "素材7：工业建筑图纸三视图", detail: "手绘简单建筑的主视图、俯视图与左视图。", img: "./assets/images/house_plan.svg" },
-        { name: "素材8：产品爆炸拆解手绘草图", detail: "绘制产品各零件拆卸方向的引导线。", img: "./assets/images/explosion_diagram.svg" },
-        { name: "素材9：简单 3D 建模透视草图", detail: "用线条表达 3D 模型的体块切割关系。", img: "./assets/images/isometric_cube.svg" },
-        { name: "素材10：信息分类树状架构图", detail: "手绘知识库或目录结构的树状分支图。", img: "./assets/images/flowchart.svg" }
-      ]
+    {
+      "id": "s5",
+      "title": "诗歌朗诵情感跟读",
+      "desc": "通过现代诗体会语言的美感与情绪张力。"
     },
-    6: {
-      title: "模块六：综合实战演练",
-      items: [
-        { name: "素材1：会议录音整理结构化纪要", detail: "听 3 分钟会议录音，提炼决议事项、责任人与 deadline。", img: "" },
-        { name: "素材2：产品使用说明书撰写", detail: "编写一份无错无漏的 500 字小白使用指南。", img: "" },
-        { name: "素材3：跨部门资源协调沟通", detail: "模拟向兄弟部门申请资源支持，阐明互利共赢逻辑。", img: "" },
-        { name: "素材4：沟通录音自我复盘", detail: "录下真实沟通，分析停顿与废话。", img: "" },
-        { name: "素材5：新闻事件 5W1H 结构化报告", detail: "将新闻事件写成报告。", img: "" },
-        { name: "素材6：项目总结复盘汇报", detail: "按照目标-结果-差距-原因-行动五步法汇报。", img: "" },
-        { name: "素材7：客户异议处理演练", detail: "用价值拆解法进行逻辑回应。", img: "" },
-        { name: "素材8：团队动员演讲", detail: "在项目冲刺关头发表 3 分钟鼓舞士气的演讲。", img: "" },
-        { name: "素材9：论文摘要精简", detail: "将长文摘要精简为 100 字核心结论。", img: "" },
-        { name: "素材10：读书笔记卡片化输出", detail: "用一张卡片输出 3 个核心洞察。", img: "" }
-      ]
+    {
+      "id": "s6",
+      "title": "影视剧台词跟读",
+      "desc": "角色代入感训练，体验不同性格的语言特点。"
+    },
+    {
+      "id": "s7",
+      "title": "体育解说极速跟读",
+      "desc": "训练语速与反应能力，提升嘴皮子利索度。"
+    },
+    {
+      "id": "s8",
+      "title": "电台情感夜话跟读",
+      "desc": "轻柔语调与共情能力的听觉表达训练。"
+    },
+    {
+      "id": "s9",
+      "title": "少儿故事生动跟读",
+      "desc": "夸张语气与角色变换，增加表达趣味性。"
+    },
+    {
+      "id": "s10",
+      "title": "商业路演自信跟读",
+      "desc": "从容不迫、充满信念感的商业表达气场训练。"
     }
-  };
+  ],
+  "recap": [
+    {
+      "id": "r1",
+      "title": "听寓言转述",
+      "desc": "听一段一分钟小故事，用自己的话完整复述起因经过结果。"
+    },
+    {
+      "id": "r2",
+      "title": "时政新闻提炼",
+      "desc": "听完三分钟新闻，用三句话总结核心要点。"
+    },
+    {
+      "id": "r3",
+      "title": "科普知识转译",
+      "desc": "将晦涩的专业名词，用大白话解释给非专业人士听。"
+    },
+    {
+      "id": "r4",
+      "title": "电影剧情概括",
+      "desc": "在两分钟内，把一部两小时的电影讲得引人入胜。"
+    },
+    {
+      "id": "r5",
+      "title": "客户需求复述",
+      "desc": "模拟客服场景，准确复述客户的痛点与诉求。"
+    },
+    {
+      "id": "r6",
+      "title": "会议纪要口述",
+      "desc": "根据会议录音片段，口头输出条理清晰的会议纪要。"
+    },
+    {
+      "id": "r7",
+      "title": "书籍核心观点复盘",
+      "desc": "读完一章书后，不看书本，口述其核心论点及论据。"
+    },
+    {
+      "id": "r8",
+      "title": "领导指示传达",
+      "desc": "将领导的模糊意图，清晰明确地转述给执行团队。"
+    },
+    {
+      "id": "r9",
+      "title": "长句拆解复述",
+      "desc": "把一段长篇大论，拆解成几个简单句，重新表达。"
+    },
+    {
+      "id": "r10",
+      "title": "反面观点转述",
+      "desc": "站在对方立场，客观复述你不认同的观点，锻炼同理心。"
+    }
+  ],
+  "impromptu": [
+    {
+      "id": "i1",
+      "title": "电梯法则：30秒推销自己",
+      "desc": "在电梯里偶遇大佬，如何用30秒让他记住你。"
+    },
+    {
+      "id": "i2",
+      "title": "关键词串讲",
+      "desc": "随机抽取三个无关词语，即兴编一段合逻辑的话。"
+    },
+    {
+      "id": "i3",
+      "title": "两难困境抉择",
+      "desc": "面对伦理困境，即兴表达你的选择并给出理由。"
+    },
+    {
+      "id": "i4",
+      "title": "突然被点名发言",
+      "desc": "在大会上突然被领导点名谈看法，如何从容应对。"
+    },
+    {
+      "id": "i5",
+      "title": "看图说话",
+      "desc": "展示一张抽象图片，即兴发表一分钟的见解。"
+    },
+    {
+      "id": "i6",
+      "title": "反常识辩护",
+      "desc": "抽到一个看似荒谬的论点，尝试给出合理论证。"
+    },
+    {
+      "id": "i7",
+      "title": "一分钟安利",
+      "desc": "向大家极力推荐你最近喜欢的一本书或一部剧。"
+    },
+    {
+      "id": "i8",
+      "title": "如果我是CEO",
+      "desc": "假设你明天就任公司CEO，发表就职演说。"
+    },
+    {
+      "id": "i9",
+      "title": "名言新解",
+      "desc": "对一句耳熟能详的名言，提出完全相反但有说服力的解释。"
+    },
+    {
+      "id": "i10",
+      "title": "危机公关回应",
+      "desc": "模拟公司突发负面新闻，作为发言人即兴回应媒体。"
+    }
+  ],
+  "scenario": [
+    {
+      "id": "sc1",
+      "title": "向老板申请涨薪",
+      "desc": "准备充分的业绩数据，不卑不亢地提出加薪请求。",
+      "icon": "/icons/salary.svg"
+    },
+    {
+      "id": "sc2",
+      "title": "拒绝不合理的工作分配",
+      "desc": "有理有据地对超负荷或职责外的工作说“不”。",
+      "icon": "/icons/reject.svg"
+    },
+    {
+      "id": "sc3",
+      "title": "跨部门协作推进",
+      "desc": "如何说服资源紧张的其他部门配合你的项目。",
+      "icon": "/icons/cooperate.svg"
+    },
+    {
+      "id": "sc4",
+      "title": "安抚愤怒的客户",
+      "desc": "运用共情技巧，平息客户怒火并给出解决方案。",
+      "icon": "/icons/customer.svg"
+    },
+    {
+      "id": "sc5",
+      "title": "新人入职自我介绍",
+      "desc": "在团队晨会上，做一个让人印象深刻的自我介绍。",
+      "icon": "/icons/intro.svg"
+    },
+    {
+      "id": "sc6",
+      "title": "项目失败复盘汇报",
+      "desc": "客观分析失败原因，承担责任并提出改进计划，避免甩锅。",
+      "icon": "/icons/failure.svg"
+    },
+    {
+      "id": "sc7",
+      "title": "向上级争取资源",
+      "desc": "说明项目价值与当前瓶颈，让领导心甘情愿批预算。",
+      "icon": "/icons/resource.svg"
+    },
+    {
+      "id": "sc8",
+      "title": "主持一场周会",
+      "desc": "把控会议节奏，引导大家高效讨论，不做无用功。",
+      "icon": "/icons/meeting.svg"
+    },
+    {
+      "id": "sc9",
+      "title": "给下属做绩效面谈",
+      "desc": "表扬优点，指出不足，设定下一阶段的清晰目标。",
+      "icon": "/icons/feedback.svg"
+    },
+    {
+      "id": "sc10",
+      "title": "商务宴请祝酒辞",
+      "desc": "得体大方，既活跃气氛又表达合作诚意的祝酒发言。",
+      "icon": "/icons/toast.svg"
+    }
+  ]
+};
 
   function initApp() {
     const saved = localStorage.getItem(DB_KEY);
@@ -1730,17 +2227,77 @@
   let currentSpeed = 1.0;
 
 const TRAINING_VIDEOS = [
-    // 跟读训练视频
-    { category: 'follow', name: '口才训练·每日朗读跟读', platform: 'bilibili', bvid: 'BV1aS4y1G7iZ', subtitle: '跟随标准朗读节奏，练习语速控制与吐字清晰度' },
-    { category: 'follow', name: '演讲与表达·影子跟读法', platform: 'bilibili', bvid: 'BV1nT4y1M7qh', subtitle: '影子跟读法核心训练，同步模仿语调与停顿' },
-    { category: 'follow', name: '播音腔发声训练', platform: 'bilibili', bvid: 'BV1WJ411y7GP', subtitle: '专业播音发声方法，腹式呼吸与共鸣训练' },
-    // 背诵经典
-    { category: 'recite', name: '《道德经》全文诵读（带字幕）', platform: 'bilibili', bvid: 'BV1Wb411n7LY', subtitle: '配合字幕跟读道德经全81章' },
-    { category: 'recite', name: '《论语》精选篇章朗读', platform: 'bilibili', bvid: 'BV1rt411V7KR', subtitle: '论语经典名篇标准朗读示范' },
-    // 诵读名篇
-    { category: 'read', name: '名家经典散文朗诵合集', platform: 'bilibili', bvid: 'BV1Ks411575R', subtitle: '名家朗诵古今名篇，感受语言之美' },
-    { category: 'read', name: '古诗词名篇诵读', platform: 'bilibili', bvid: 'BV1vb411q7cZ', subtitle: '经典古诗词标准诵读，培养语感韵律' }
-  ];
+  {
+    "bvid": "BV1aS4y1G7iZ",
+    "title": "【播音跟读】主持人口才吐字与断句示范（带硬字幕）",
+    "category": "follow",
+    "subtitle": "重点训练：字正腔圆，气息平稳，断句清晰。",
+    "lyricText": "各位观众晚上好，欢迎收看今天的节目。在这里，我们将一起探讨，如何在日常生活中，更好地表达自己的想法。"
+  },
+  {
+    "bvid": "BV1nT4y1M7qh",
+    "title": "【TED中文】演讲中的声调与感染力表达（带中英字幕）",
+    "category": "read",
+    "subtitle": "重点训练：声调变化，情感起伏，肢体语言配合。",
+    "lyricText": "沟通不仅仅是传递信息，更是传递情感。当你用真诚的声音去表达时，你的听众才能真正感受到你的力量。"
+  },
+  {
+    "bvid": "BV1Wb411n7LY",
+    "title": "【道德经】老子道德经全文朗读带字幕与白话释义",
+    "category": "recite",
+    "subtitle": "重点训练：文言文韵律感，平心静气，长句气息连贯。",
+    "lyricText": "道可道，非常道；名可名，非常名。无名，天地之始；有名，万物之母。"
+  },
+  {
+    "bvid": "BV1rt411V7KR",
+    "title": "【论语】论语名篇标准朗读示范",
+    "category": "recite",
+    "subtitle": "重点训练：经典语录的抑扬顿挫，体会古语的美感。",
+    "lyricText": "学而时习之，不亦说乎？有朋自远方来，不亦乐乎？人不知而不愠，不亦君子乎？"
+  },
+  {
+    "bvid": "BV1Ks411575R",
+    "title": "【名家朗读】朱自清《背影》名家朗诵带字幕",
+    "category": "read",
+    "subtitle": "重点训练：情感饱满的散文朗读，语速舒缓，情绪递进。",
+    "lyricText": "我说道：爸爸，你走吧。他往车外看了看说：我买几个橘子去。你就在此地，不要走动。"
+  },
+  {
+    "bvid": "BV1vb411q7cZ",
+    "title": "【诗经】经典诗词韵律朗读带字幕",
+    "category": "recite",
+    "subtitle": "重点训练：四言古诗的节奏把控，重音停顿。",
+    "lyricText": "关关雎鸠，在河之洲。窈窕淑女，君子好逑。参差荇菜，左右流之。"
+  },
+  {
+    "bvid": "BV1Zt411x78D",
+    "title": "【职场表达】如何用黄金三点法做30秒汇报",
+    "category": "scenario",
+    "subtitle": "重点训练：逻辑清晰，结论先行，表达简练。",
+    "lyricText": "关于这个项目，我有三点汇报：第一，目前进度已完成80%；第二，遇到的主要瓶颈是资源不足；第三，建议增加两名开发人员。"
+  },
+  {
+    "bvid": "BV1Q4411q73R",
+    "title": "【逻辑表达】麦肯锡金字塔原理演讲示范",
+    "category": "scenario",
+    "subtitle": "重点训练：总分总结构，层层递进，观点鲜明。",
+    "lyricText": "为了提升销售额，我们必须采取行动。具体来说，有三个方向：扩大新客源，提升复购率，以及提高客单价。"
+  },
+  {
+    "bvid": "BV1GJ411c7Kx",
+    "title": "【演讲技巧】公众演讲控场与眼神互动",
+    "category": "read",
+    "subtitle": "重点训练：演讲时的自信表达，目光交流与停顿。",
+    "lyricText": "大家试想一下，如果未来十年，我们的生活方式发生巨变。你们，准备好了吗？（停顿三秒）"
+  },
+  {
+    "bvid": "BV1sJ411a7uM",
+    "title": "【场景沟通】关键对话与高情商回应",
+    "category": "scenario",
+    "subtitle": "重点训练：面对冲突时的温和坚定，共情回应。",
+    "lyricText": "我理解你的顾虑，这确实是一个挑战。但如果我们换个角度来看，这或许也是一次难得的机遇。"
+  }
+];
 
   function populateVideoSelect(category) {
     const select = document.getElementById('routine-video-select');
@@ -1783,6 +2340,30 @@ const TRAINING_VIDEOS = [
   }
 
   function toggleRoutineTimer() {
+  const btn = document.getElementById('btn-routine-start');
+  if (!isTimerRunning) {
+    isTimerRunning = true;
+    btn.innerText = '暂停录音与播放';
+    timerInterval = setInterval(() => {
+      timerSeconds += 0.1;
+      document.getElementById('routine-timer').innerText = formatTime(timerSeconds);
+    }, 100);
+
+    // Launch Native MediaRecorder
+    globalAudioRecorder = new AudioRecorder();
+    globalAudioRecorder.start().catch(err => {
+      showToast('⚠️ 未能开启麦克风录音：' + err.message, 'warning');
+    });
+
+    startSpeechRecognition('routine-live-transcript');
+  } else {
+    isTimerRunning = false;
+    btn.innerText = '继续录音与播放';
+    clearInterval(timerInterval);
+    if (speechRec) try { speechRec.stop(); } catch(e){}
+  }
+}
+function _oldToggleUnused() {
     const btn = document.getElementById('btn-routine-start');
     const video = document.getElementById('routine-video');
     if (!isTimerRunning) {
@@ -1856,7 +2437,64 @@ const TRAINING_VIDEOS = [
   }
 
   // Automated Algorithmic Score Engine (No Self-Eval)
-  function finishRoutineStepAutoScore() {
+  let globalAudioRecorder = null;
+
+function finishRoutineStepAutoScore() {
+  clearInterval(timerInterval);
+  isTimerRunning = false;
+  document.getElementById('btn-routine-start').innerText = '启动录音与歌词播放';
+  if (speechRec) try { speechRec.stop(); } catch(e){}
+
+  // Stop MediaRecorder & Get Audio Blob URL
+  if (globalAudioRecorder) {
+    globalAudioRecorder.stop().then(blob => {
+      if (blob) {
+        const audioUrl = URL.createObjectURL(blob);
+        const player = document.getElementById('routine-audio-player');
+        if (player) {
+          player.src = audioUrl;
+          document.getElementById('routine-audio-box').style.display = 'block';
+        }
+      }
+    }).catch(err => console.warn('Audio stop err:', err));
+  }
+
+  // Real Algorithm Assessment: Levenshtein + WPM + Duration
+  const userText = document.getElementById('routine-live-transcript').innerText || '';
+  const refText = sampleLyricText;
+  
+  const similarityPercent = calcLevenshteinSimilarity(userText, refText);
+  const wpm = Math.round((userText.length / Math.max(1, timerSeconds)) * 60);
+
+  // Five Dimension Calculation
+  const accuracy = Math.min(98, Math.max(40, Math.round(similarityPercent * 0.9 + 10)));
+  const completeness = Math.min(98, Math.max(30, Math.round((userText.length / Math.max(1, refText.length)) * 100)));
+  const conciseness = Math.min(95, Math.max(50, wpm >= 180 && wpm <= 280 ? 90 : 70));
+  const fluency = Math.min(98, Math.max(45, userText.length > 10 ? 88 : 50));
+  const rhythm = Math.min(96, Math.max(50, timerSeconds >= 10 && timerSeconds <= 120 ? 92 : 65));
+
+  const totalScore = Math.round((accuracy * 0.3) + (completeness * 0.25) + (conciseness * 0.15) + (fluency * 0.15) + (rhythm * 0.15));
+
+  document.getElementById('routine-score-val').innerText = totalScore + ' 分';
+  document.getElementById('routine-score-breakdown').innerHTML = 
+    `<b>文本重合度:</b> ${similarityPercent}% (基于 Levenshtein 编辑距离算法)<br>` +
+    `<b>估算语速:</b> ${wpm} 字/分钟<br>` +
+    `<b>多维表现:</b> 准确度 ${accuracy} | 完整度 ${completeness} | 简洁度 ${conciseness} | 流畅度 ${fluency} | 节奏感 ${rhythm}`;
+
+  document.getElementById('routine-algo-report').style.display = 'block';
+  
+  // Draw Pentagonal Radar Chart
+  drawRadarChart('routine-radar-canvas', { accuracy, completeness, conciseness, fluency, rhythm });
+
+  // Trigger Toast & Confetti if high score
+  if (totalScore >= 80) {
+    showToast('🎉 表现卓越！评分超过 ' + totalScore + ' 分！', 'success');
+    launchConfetti('confetti-canvas');
+  } else {
+    showToast('💪 练习已保存，继续保持！', 'info');
+  }
+}
+function _oldFinishRoutineUnused() {
     clearInterval(timerInterval);
     isTimerRunning = false;
     document.getElementById('btn-routine-start').innerText = '启动录音与歌词播放';
@@ -1970,7 +2608,32 @@ const TRAINING_VIDEOS = [
     document.getElementById('module-runner').style.display = 'none';
   }
 
-  function toggleRunnerTimer() {
+  let runnerAudioRecorder = null;
+
+function toggleRunnerTimer() {
+  const btn = document.getElementById('btn-runner-start');
+  if (!isTimerRunning) {
+    isTimerRunning = true;
+    btn.innerText = '暂停练习';
+    timerInterval = setInterval(() => {
+      timerSeconds += 0.1;
+      document.getElementById('runner-timer').innerText = formatTime(timerSeconds);
+    }, 100);
+
+    runnerAudioRecorder = new AudioRecorder();
+    runnerAudioRecorder.start().catch(err => {
+      showToast('⚠️ 未能开启麦克风录音：' + err.message, 'warning');
+    });
+
+    startSpeechRecognition('runner-transcript');
+  } else {
+    isTimerRunning = false;
+    btn.innerText = '继续练习';
+    clearInterval(timerInterval);
+    if (speechRec) try { speechRec.stop(); } catch(e){}
+  }
+}
+function _oldRunnerTimerUnused() {
     const btn = document.getElementById('btn-runner-start');
     if (!isTimerRunning) {
       isTimerRunning = true;
@@ -1989,6 +2652,58 @@ const TRAINING_VIDEOS = [
   }
 
   function finishRunnerAutoScore() {
+  clearInterval(timerInterval);
+  isTimerRunning = false;
+  document.getElementById('btn-runner-start').innerText = '开始练习 (启动录音)';
+  if (speechRec) try { speechRec.stop(); } catch(e){}
+
+  if (runnerAudioRecorder) {
+    runnerAudioRecorder.stop().then(blob => {
+      if (blob) {
+        const audioUrl = URL.createObjectURL(blob);
+        const player = document.getElementById('runner-audio-player');
+        if (player) {
+          player.src = audioUrl;
+          document.getElementById('runner-audio-box').style.display = 'block';
+        }
+      }
+    }).catch(err => console.warn('Runner audio stop err:', err));
+  }
+
+  const index = document.getElementById('runner-item-select').value;
+  const item = MODULES_DATA[currentModuleId]?.items?.[index];
+  const refText = item ? (item.name + ' ' + item.detail) : '';
+  const userText = document.getElementById('runner-transcript').innerText || '';
+
+  const similarityPercent = calcLevenshteinSimilarity(userText, refText);
+  const wpm = Math.round((userText.length / Math.max(1, timerSeconds)) * 60);
+
+  const accuracy = Math.min(98, Math.max(35, Math.round(similarityPercent * 0.85 + 15)));
+  const completeness = Math.min(98, Math.max(30, Math.round((userText.length / Math.max(1, refText.length || 20)) * 100)));
+  const conciseness = Math.min(95, Math.max(45, userText.length > 5 ? 85 : 40));
+  const fluency = Math.min(98, Math.max(40, userText.length > 8 ? 90 : 50));
+  const rhythm = Math.min(96, Math.max(45, timerSeconds >= 5 ? 88 : 50));
+
+  const totalScore = Math.round((accuracy * 0.3) + (completeness * 0.25) + (conciseness * 0.15) + (fluency * 0.15) + (rhythm * 0.15));
+
+  document.getElementById('runner-score-val').innerText = totalScore + ' 分';
+  document.getElementById('runner-score-breakdown').innerHTML = 
+    `<b>用时:</b> ${formatTime(timerSeconds)} | <b>估算语速:</b> ${wpm} 字/分钟<br>` +
+    `<b>参考文本相似度:</b> ${similarityPercent}% (基于 Levenshtein 编辑距离算法)<br>` +
+    `<b>多维表现:</b> 准确度 ${accuracy} | 完整度 ${completeness} | 简洁度 ${conciseness} | 流畅度 ${fluency} | 节奏感 ${rhythm}`;
+
+  document.getElementById('runner-algo-report').style.display = 'block';
+  
+  drawRadarChart('runner-radar-canvas', { accuracy, completeness, conciseness, fluency, rhythm });
+
+  if (totalScore >= 80) {
+    showToast('🎉 恭喜！高分突破 ' + totalScore + ' 分！', 'success');
+    launchConfetti('confetti-canvas');
+  } else {
+    showToast('✅ 训练成果已记录！', 'info');
+  }
+}
+function _oldFinishRunnerUnused() {
     clearInterval(timerInterval);
     isTimerRunning = false;
     document.getElementById('btn-runner-start').innerText = '开始练习 (启动录音)';
