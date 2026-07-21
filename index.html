@@ -563,14 +563,22 @@
         </div>
       </div>
 
-      <!-- Studio Panel with Karaoke Highlight Feature -->
+      <!-- Studio Panel with Real Embedded Video + Synchronized Subtitles -->
       <div class="card" id="routine-studio" style="display: none; text-align: center; padding: 30px 20px;">
         <h3 id="routine-studio-title" class="card-title">跟读练习</h3>
-        <p id="routine-studio-desc" style="font-size: 13px; color: var(--text-muted); margin-bottom: 16px;">跟读下方加粗示范文本（带酷狗音乐歌词平滑高亮特效）：</p>
+        <p id="routine-studio-desc" style="font-size: 13px; color: var(--text-muted); margin-bottom: 16px;">跟随上方示范视频与同步高亮字幕，出声跟读（支持 0.75x 减速对齐）：</p>
 
-        <!-- Dynamic Karaoke Lyric Text Container -->
-        <div class="karaoke-text" id="karaoke-display-box">
-          <b>表达能力差是因为建模没建好，也就是广义的语言。这项能力的水准基本就决定了你人生的上限和下限。这是可以通过后天系统训练的。学习就是在意识中构建你对这个世界无错、无漏、无废的表达。</b>
+        <!-- Embedded Video Player -->
+        <div style="max-width: 640px; margin: 0 auto 16px auto; border-radius: var(--radius-md); overflow: hidden; border: 1px solid var(--border-subtle); background: #000;">
+          <video id="routine-video" src="./assets/video/demo_follow.mp4" controls style="width: 100%; max-height: 360px; display: block;"></video>
+        </div>
+
+        <!-- Synchronized Subtitle Display Box -->
+        <div style="background: var(--accent-light); border-left: 4px solid var(--accent-caramel); padding: 16px; border-radius: 0 var(--radius-md) var(--radius-md) 0; margin-bottom: 16px; text-align: left;">
+          <div style="font-size: 12px; color: var(--accent-caramel); font-weight: 700; margin-bottom: 4px;">同步跟读字幕 (跟随视频高亮流转)：</div>
+          <div class="karaoke-text" id="karaoke-display-box" style="background: transparent; padding: 0; margin: 0;">
+            <b>表达能力差是因为建模没建好，也就是广义的语言。这项能力的水准基本就决定了你人生的上限和下限。这是可以通过后天系统训练的。学习就是在意识中构建你对这个世界无错、无漏、无废的表达。</b>
+          </div>
         </div>
 
         <div class="speed-controls" id="routine-speed-bar">
