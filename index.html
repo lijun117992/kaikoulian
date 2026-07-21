@@ -17,6 +17,32 @@
 
   <style>
     :root {
+    --font-serif: 'Noto Serif SC', serif;
+    --font-sans: 'Noto Sans SC', sans-serif;
+  }
+  [data-theme="light"] {
+    --bg-main: #faf8f5;
+    --bg-secondary: #f4efe6;
+    --bg-card: #ffffff;
+    --text-main: #2b2825;
+    --text-muted: #78726a;
+    --accent-gold: #d4a853;
+    --accent-caramel: #c8956c;
+    --accent-light: #f7eedc;
+    --border-subtle: #e8e2d9;
+  }
+  [data-theme="dark"] {
+    --bg-main: #0f1117;
+    --bg-secondary: #161922;
+    --bg-card: #1a1d27;
+    --text-main: #e2e8f0;
+    --text-muted: #8b8fa3;
+    --accent-gold: #d4a853;
+    --accent-caramel: #d4a853;
+    --accent-light: #262a38;
+    --border-subtle: rgba(212, 168, 83, 0.18);
+  }
+  :root {
       --bg-paper: #faf8f5;
       --bg-card: #ffffff;
       --bg-secondary: #f2eee8;
@@ -441,7 +467,7 @@
     }
   </style>
 </head>
-<body>
+<body data-theme="light">
 <div id="toast-container" style="position: fixed; top: 20px; right: 20px; z-index: 9999; display: flex; flex-direction: column; gap: 8px; pointer-events: none;"></div>
 <canvas id="confetti-canvas" style="position: fixed; top: 0; left: 0; width: 100vw; height: 100vh; pointer-events: none; z-index: 9998;"></canvas>
 
@@ -841,6 +867,248 @@
 </nav>
 
 <script>
+
+// 1. 成就系统逻辑引擎 (Achievement Engine)
+const ACHIEVEMENTS = {
+    first_training: { id: 'first_training', name: '初心', desc: '完成第一次训练' },
+    streak_3: { id: 'streak_3', name: '三日不辍', desc: '连续3天打卡' },
+    streak_7: { id: 'streak_7', name: '七日如一', desc: '连续7天打卡' },
+    streak_30: { id: 'streak_30', name: '月度精英', desc: '连续30天打卡' },
+    high_score: { id: 'high_score', name: '无错之路', desc: '单次评分达到 90 分以上' },
+    master_recap: { id: 'master_recap', name: '编码大师', desc: '完成 5 次脱稿复盘练习' },
+    radar_god: { id: 'radar_god', name: '五维全能', desc: '雷达图五维得分均超过 85 分' },
+    classics_fan: { id: 'classics_fan', name: '典籍收藏家', desc: '搜索查看典籍超过 10 次' }
+};
+
+class AchievementEngine {
+    constructor(appState) {
+        this.appState = appState;
+        this.appState.unlockedAchievements = this.appState.unlockedAchievements || [];
+    }
+
+    checkAchievements() {
+        const unlockedSet = new Set(this.appState.unlockedAchievements);
+        const newlyUnlocked = [];
+
+        const unlock = (id) => {
+            if (!unlockedSet.has(id)) {
+                unlockedSet.add(id);
+                newlyUnlocked.push(ACHIEVEMENTS[id]);
+            }
+        };
+
+        const history = this.appState.history || [];
+        const streak = this.appState.streak || 0;
+
+        // 1. 初心 — 完成第一次训练
+        if (history.length >= 1) unlock('first_training');
+        
+        // 2, 3, 4. 打卡连续天数
+        if (streak >= 3) unlock('streak_3');
+        if (streak >= 7) unlock('streak_7');
+        if (streak >= 30) unlock('streak_30');
+        
+        // 5. 无错之路 — 单次评分达到 90 分以上
+        if (history.some(h => h.score >= 90)) unlock('high_score');
+        
+        // 6. 编码大师 — 完成 5 次脱稿复盘练习
+        if (history.filter(h => h.isRecap).length >= 5) unlock('master_recap');
+        
+        // 7. 五维全能 — 雷达图五维得分均超过 85 分
+        if (history.some(h => 
+            h.radar && 
+            h.radar.fluency >= 85 && 
+            h.radar.vocabulary >= 85 && 
+            h.radar.grammar >= 85 && 
+            h.radar.pronunciation >= 85 && 
+            h.radar.logic >= 85
+        )) unlock('radar_god');
+        
+        // 8. 典籍收藏家 — 搜索查看典籍超过 10 次
+        if (this.appState.classicsViewCount >= 10) unlock('classics_fan');
+
+        this.appState.unlockedAchievements = Array.from(unlockedSet);
+        
+        // 返回新解锁的成就，以便前端展示弹窗提示
+        return newlyUnlocked;
+    }
+}
+
+
+// 2. 主题切换系统 (Theme Switcher)
+class ThemeSwitcher {
+    constructor() {
+        // 初始化时从 localStorage 读取偏好
+        this.currentTheme = localStorage.getItem('appTheme') || 'light';
+        this.applyTheme(this.currentTheme);
+    }
+
+    toggleTheme() {
+        this.currentTheme = this.currentTheme === 'light' ? 'editorial-dark' : 'light';
+        localStorage.setItem('appTheme', this.currentTheme);
+        this.applyTheme(this.currentTheme);
+    }
+
+    applyTheme(theme) {
+        if (theme === 'editorial-dark') {
+            document.body.classList.add('theme-editorial-dark');
+            document.body.classList.remove('theme-light');
+        } else {
+            document.body.classList.add('theme-light');
+            document.body.classList.remove('theme-editorial-dark');
+        }
+    }
+}
+
+
+// 3. 打卡日历 Tooltip 交互扩展
+class CalendarTooltip {
+    constructor(canvasId, getRecordByDateStr) {
+        this.canvas = document.getElementById(canvasId);
+        this.ctx = this.canvas.getContext('2d');
+        this.getRecordByDateStr = getRecordByDateStr; // 提供根据日期查询打卡次数的方法
+        this.tooltip = this.createTooltipElement();
+        this.dateRects = []; // 存储日历上每一天的坐标区域: { x, y, w, h, dateStr }
+
+        this.bindEvents();
+    }
+
+    createTooltipElement() {
+        let el = document.getElementById('calendar-tooltip');
+        if (!el) {
+            el = document.createElement('div');
+            el.id = 'calendar-tooltip';
+            el.style.position = 'absolute';
+            el.style.display = 'none';
+            el.style.backgroundColor = 'rgba(0, 0, 0, 0.8)';
+            el.style.color = '#fff';
+            el.style.padding = '6px 10px';
+            el.style.borderRadius = '6px';
+            el.style.fontSize = '12px';
+            el.style.pointerEvents = 'none';
+            el.style.zIndex = '9999';
+            el.style.transition = 'opacity 0.2s';
+            document.body.appendChild(el);
+        }
+        return el;
+    }
+
+    // 在外部绘制日历时调用此方法更新每一天的区域坐标
+    updateDateRects(rects) {
+        this.dateRects = rects;
+    }
+
+    bindEvents() {
+        this.canvas.addEventListener('mousemove', (e) => {
+            const rect = this.canvas.getBoundingClientRect();
+            // 考虑 Canvas 的缩放与像素比
+            const scaleX = this.canvas.width / rect.width;
+            const scaleY = this.canvas.height / rect.height;
+            const x = (e.clientX - rect.left) * scaleX;
+            const y = (e.clientY - rect.top) * scaleY;
+
+            let hoveredItem = null;
+            for (const r of this.dateRects) {
+                if (x >= r.x && x <= r.x + r.w && y >= r.y && y <= r.y + r.h) {
+                    hoveredItem = r;
+                    break;
+                }
+            }
+
+            if (hoveredItem) {
+                const count = this.getRecordByDateStr(hoveredItem.dateStr) || 0;
+                this.tooltip.innerHTML = `<strong>${hoveredItem.dateStr}</strong><br/>打卡 ${count} 次`;
+                this.tooltip.style.left = `${e.clientX + 15}px`;
+                this.tooltip.style.top = `${e.clientY + 15}px`;
+                this.tooltip.style.display = 'block';
+                this.canvas.style.cursor = 'pointer';
+            } else {
+                this.tooltip.style.display = 'none';
+                this.canvas.style.cursor = 'default';
+            }
+        });
+
+        this.canvas.addEventListener('mouseleave', () => {
+            this.tooltip.style.display = 'none';
+        });
+    }
+}
+
+
+// 4. 数据可视化折线图增强 (T 值走势 + 5 维平均得分对比)
+class DataVisualizer {
+    constructor(canvasId) {
+        this.canvas = document.getElementById(canvasId);
+        this.ctx = this.canvas.getContext('2d');
+    }
+
+    // history 参数结构示例: { date: '2026-07-20', tValue: 88, radarAvg: 85 }
+    drawTrendChart(historyList) {
+        // 取最近连续 7 次训练
+        const data = historyList.slice(-7);
+        if (data.length === 0) return;
+
+        const width = this.canvas.width;
+        const height = this.canvas.height;
+        const padding = 40;
+
+        // 清空画布
+        this.ctx.clearRect(0, 0, width, height);
+
+        // 绘制坐标轴
+        this.ctx.beginPath();
+        this.ctx.strokeStyle = '#e0e0e0';
+        this.ctx.moveTo(padding, padding);
+        this.ctx.lineTo(padding, height - padding); // Y轴
+        this.ctx.lineTo(width - padding, height - padding); // X轴
+        this.ctx.stroke();
+
+        const maxScore = 100;
+        const minScore = 0; // 或者根据实际最低分计算
+
+        // 绘制数据线的通用函数
+        const drawLine = (key, color) => {
+            this.ctx.beginPath();
+            this.ctx.strokeStyle = color;
+            this.ctx.lineWidth = 2;
+            this.ctx.lineJoin = 'round';
+            
+            data.forEach((item, index) => {
+                const x = padding + (index * (width - 2 * padding) / Math.max(1, data.length - 1));
+                const y = height - padding - ((item[key] - minScore) / (maxScore - minScore)) * (height - 2 * padding);
+                
+                if (index === 0) {
+                    this.ctx.moveTo(x, y);
+                } else {
+                    this.ctx.lineTo(x, y);
+                }
+            });
+            this.ctx.stroke();
+
+            // 绘制数据点
+            data.forEach((item, index) => {
+                const x = padding + (index * (width - 2 * padding) / Math.max(1, data.length - 1));
+                const y = height - padding - ((item[key] - minScore) / (maxScore - minScore)) * (height - 2 * padding);
+                this.ctx.fillStyle = '#fff';
+                this.ctx.beginPath();
+                this.ctx.arc(x, y, 4, 0, Math.PI * 2);
+                this.ctx.fill();
+                this.ctx.strokeStyle = color;
+                this.ctx.stroke();
+            });
+        };
+
+        // T值走势使用主色调（如活力橙）
+        drawLine('tValue', '#ff7a45'); 
+        // 5维平均得分对比使用辅色调（如清爽蓝）
+        drawLine('radarAvg', '#1890ff'); 
+    }
+}
+
+
+
+
+
 
 /**
  * 开口练 Core Modules
@@ -2155,6 +2423,7 @@ if (typeof module !== 'undefined' && module.exports) {
     renderQuotesList();
     renderKaraokeText();
     initCharts();
+    if (typeof renderAchievements === 'function') renderAchievements();
     setupNavigation();
   }
 
