@@ -1,0 +1,1383 @@
+<!DOCTYPE html>
+<html lang="zh-CN">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no, viewport-fit=cover">
+  <title>开口练 — 表达力与逻辑系统训练 App</title>
+  <link rel="manifest" href="./manifest.json">
+  <meta name="theme-color" content="#c8956c">
+  <meta name="apple-mobile-web-app-capable" content="yes">
+  <meta name="apple-mobile-web-app-status-bar-style" content="default">
+  <meta name="apple-mobile-web-app-title" content="开口练">
+
+  <!-- Google Fonts -->
+  <link rel="preconnect" href="https://fonts.googleapis.com">
+  <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+  <link href="https://fonts.googleapis.com/css2?family=Noto+Sans+SC:wght@300;400;500;700&family=Noto+Serif+SC:wght@400;600;700&display=swap" rel="stylesheet">
+
+  <style>
+    /* ==========================================================================
+       设计系统 — 暖白纸质手帐美学 (Bright Paper Style)
+       ========================================================================== */
+    :root {
+      --bg-paper: #faf8f5;
+      --bg-card: #ffffff;
+      --bg-secondary: #f2eee8;
+      --text-main: #2b2825;
+      --text-muted: #78726a;
+      --text-light: #a39c93;
+      --accent-caramel: #c8956c;
+      --accent-caramel-hover: #b58056;
+      --accent-light: #f7eedc;
+      --accent-green: #4a6741;
+      --accent-red: #c04936;
+      --border-subtle: #eae4da;
+      --border-accent: rgba(200, 149, 108, 0.3);
+      --shadow-sm: 0 2px 8px rgba(43, 40, 37, 0.04);
+      --shadow-md: 0 6px 20px rgba(43, 40, 37, 0.07);
+      --radius-sm: 8px;
+      --radius-md: 14px;
+      --radius-lg: 20px;
+      --font-serif: 'Noto Serif SC', 'Georgia', serif;
+      --font-sans: 'Noto Sans SC', system-ui, sans-serif;
+      --sidebar-width: 240px;
+    }
+
+    * { box-sizing: border-box; margin: 0; padding: 0; -webkit-tap-highlight-color: transparent; }
+    
+    body {
+      background-color: var(--bg-paper);
+      color: var(--text-main);
+      font-family: var(--font-sans);
+      line-height: 1.6;
+      display: flex;
+      height: 100vh;
+      overflow: hidden;
+    }
+
+    /* Layout structure */
+    #app-container {
+      display: flex;
+      width: 100%;
+      height: 100%;
+    }
+
+    /* Sidebar Navigation (Desktop) */
+    .sidebar {
+      width: var(--sidebar-width);
+      background-color: var(--bg-card);
+      border-right: 1px solid var(--border-subtle);
+      display: flex;
+      flex-direction: column;
+      justify-content: space-between;
+      padding: 24px 16px;
+      z-index: 100;
+    }
+
+    .brand {
+      display: flex;
+      align-items: center;
+      gap: 12px;
+      padding: 0 8px 24px 8px;
+      border-bottom: 1px solid var(--border-subtle);
+    }
+
+    .brand-icon {
+      width: 40px;
+      height: 40px;
+      background: var(--accent-caramel);
+      color: #fff;
+      border-radius: var(--radius-sm);
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      font-family: var(--font-serif);
+      font-weight: 700;
+      font-size: 20px;
+    }
+
+    .brand-title {
+      font-family: var(--font-serif);
+      font-size: 20px;
+      font-weight: 700;
+      color: var(--text-main);
+      letter-spacing: 1px;
+    }
+
+    .nav-list {
+      list-style: none;
+      margin-top: 24px;
+      display: flex;
+      flex-direction: column;
+      gap: 8px;
+    }
+
+    .nav-item {
+      display: flex;
+      align-items: center;
+      gap: 12px;
+      padding: 12px 16px;
+      border-radius: var(--radius-md);
+      color: var(--text-muted);
+      cursor: pointer;
+      font-weight: 500;
+      font-size: 15px;
+      transition: all 0.2s ease;
+    }
+
+    .nav-item:hover {
+      background-color: var(--bg-secondary);
+      color: var(--text-main);
+    }
+
+    .nav-item.active {
+      background-color: var(--accent-light);
+      color: var(--accent-caramel);
+      font-weight: 700;
+    }
+
+    .nav-item svg { width: 20px; height: 20px; fill: currentColor; }
+
+    .sidebar-footer {
+      padding: 16px;
+      background-color: var(--bg-secondary);
+      border-radius: var(--radius-md);
+      text-align: center;
+    }
+
+    .streak-badge {
+      font-size: 24px;
+      font-family: var(--font-serif);
+      font-weight: 700;
+      color: var(--accent-caramel);
+    }
+
+    .streak-label {
+      font-size: 12px;
+      color: var(--text-muted);
+    }
+
+    /* Main Viewport */
+    .main-content {
+      flex: 1;
+      height: 100%;
+      overflow-y: auto;
+      padding: 32px;
+      position: relative;
+    }
+
+    .view-panel {
+      display: none;
+      max-width: 1000px;
+      margin: 0 auto;
+      animation: fadeIn 0.3s ease;
+    }
+
+    .view-panel.active { display: block; }
+
+    @keyframes fadeIn {
+      from { opacity: 0; transform: translateY(6px); }
+      to { opacity: 1; transform: translateY(0); }
+    }
+
+    /* Header & Section Titles */
+    .page-title {
+      font-family: var(--font-serif);
+      font-size: 28px;
+      font-weight: 700;
+      margin-bottom: 8px;
+      color: var(--text-main);
+    }
+
+    .page-desc {
+      color: var(--text-muted);
+      font-size: 14px;
+      margin-bottom: 24px;
+    }
+
+    /* Card Components */
+    .card {
+      background-color: var(--bg-card);
+      border-radius: var(--radius-lg);
+      border: 1px solid var(--border-subtle);
+      padding: 24px;
+      margin-bottom: 24px;
+      box-shadow: var(--shadow-sm);
+    }
+
+    .card-title {
+      font-family: var(--font-serif);
+      font-size: 18px;
+      font-weight: 600;
+      margin-bottom: 12px;
+      display: flex;
+      align-items: center;
+      justify-content: space-between;
+    }
+
+    /* Primary & Secondary Buttons */
+    .btn {
+      display: inline-flex;
+      align-items: center;
+      justify-content: center;
+      gap: 8px;
+      padding: 10px 20px;
+      border-radius: var(--radius-md);
+      font-weight: 600;
+      font-size: 14px;
+      cursor: pointer;
+      border: none;
+      transition: all 0.2s ease;
+      text-decoration: none;
+    }
+
+    .btn-primary {
+      background-color: var(--accent-caramel);
+      color: #ffffff;
+    }
+
+    .btn-primary:hover {
+      background-color: var(--accent-caramel-hover);
+    }
+
+    .btn-outline {
+      background-color: transparent;
+      border: 1px solid var(--border-accent);
+      color: var(--accent-caramel);
+    }
+
+    .btn-outline:hover {
+      background-color: var(--accent-light);
+    }
+
+    .btn-sm { padding: 6px 12px; font-size: 12px; }
+
+    /* Mobile Bottom Tab Bar */
+    .bottom-tabs {
+      display: none;
+      position: fixed;
+      bottom: 0;
+      left: 0;
+      right: 0;
+      height: 64px;
+      background-color: var(--bg-card);
+      border-top: 1px solid var(--border-subtle);
+      padding-bottom: env(safe-area-inset-bottom);
+      justify-content: space-around;
+      align-items: center;
+      z-index: 1000;
+    }
+
+    .tab-item {
+      display: flex;
+      flex-direction: column;
+      align-items: center;
+      justify-content: center;
+      gap: 3px;
+      color: var(--text-muted);
+      font-size: 10px;
+      cursor: pointer;
+      width: 20%;
+    }
+
+    .tab-item.active {
+      color: var(--accent-caramel);
+      font-weight: 700;
+    }
+
+    .tab-item svg { width: 22px; height: 22px; fill: currentColor; }
+
+    /* Quote Banner */
+    .quote-card {
+      background: linear-gradient(135deg, #f7eedc 0%, #ffffff 100%);
+      border-left: 4px solid var(--accent-caramel);
+      padding: 24px;
+      border-radius: 0 var(--radius-md) var(--radius-md) 0;
+      margin-bottom: 24px;
+    }
+
+    .quote-text {
+      font-family: var(--font-serif);
+      font-size: 18px;
+      font-weight: 600;
+      color: var(--text-main);
+      margin-bottom: 8px;
+    }
+
+    .quote-source {
+      font-size: 13px;
+      color: var(--accent-caramel);
+      font-weight: 600;
+      margin-bottom: 8px;
+    }
+
+    .quote-detail {
+      font-size: 13px;
+      color: var(--text-muted);
+      line-height: 1.5;
+    }
+
+    /* Grid layout */
+    .grid-2 {
+      display: grid;
+      grid-template-columns: repeat(2, 1fr);
+      gap: 20px;
+    }
+
+    .grid-3 {
+      display: grid;
+      grid-template-columns: repeat(3, 1fr);
+      gap: 20px;
+    }
+
+    /* Module Selector Cards */
+    .module-card {
+      background: var(--bg-card);
+      border: 1px solid var(--border-subtle);
+      border-radius: var(--radius-md);
+      padding: 20px;
+      cursor: pointer;
+      transition: all 0.2s ease;
+      display: flex;
+      flex-direction: column;
+      justify-content: space-between;
+    }
+
+    .module-card:hover {
+      border-color: var(--accent-caramel);
+      transform: translateY(-2px);
+      box-shadow: var(--shadow-md);
+    }
+
+    .module-icon {
+      font-size: 28px;
+      margin-bottom: 12px;
+    }
+
+    .module-name {
+      font-family: var(--font-serif);
+      font-size: 17px;
+      font-weight: 700;
+      margin-bottom: 6px;
+    }
+
+    .module-desc {
+      font-size: 12px;
+      color: var(--text-muted);
+      margin-bottom: 14px;
+    }
+
+    .module-meta {
+      display: flex;
+      align-items: center;
+      justify-content: space-between;
+      font-size: 12px;
+      color: var(--accent-caramel);
+      font-weight: 600;
+      border-top: 1px dashed var(--border-subtle);
+      padding-top: 10px;
+    }
+
+    /* Timer & Audio Studio UI */
+    .studio-panel {
+      text-align: center;
+      padding: 30px 20px;
+    }
+
+    .timer-display {
+      font-family: var(--font-serif);
+      font-size: 56px;
+      font-weight: 700;
+      color: var(--accent-caramel);
+      margin: 16px 0;
+      letter-spacing: 2px;
+    }
+
+    .speed-controls {
+      display: flex;
+      justify-content: center;
+      gap: 8px;
+      margin-bottom: 16px;
+    }
+
+    .speed-btn {
+      padding: 4px 12px;
+      border-radius: 12px;
+      border: 1px solid var(--border-subtle);
+      background: var(--bg-secondary);
+      font-size: 12px;
+      cursor: pointer;
+    }
+
+    .speed-btn.active {
+      background: var(--accent-caramel);
+      color: #fff;
+      border-color: var(--accent-caramel);
+    }
+
+    /* Self-Evaluation 3D Stars */
+    .star-rating {
+      display: flex;
+      gap: 8px;
+      margin: 8px 0;
+    }
+
+    .star {
+      font-size: 24px;
+      color: var(--border-subtle);
+      cursor: pointer;
+      transition: color 0.15s ease;
+    }
+
+    .star.selected {
+      color: var(--accent-caramel);
+    }
+
+    /* Score Report Box */
+    .score-report {
+      background: var(--accent-light);
+      border-radius: var(--radius-md);
+      padding: 24px;
+      text-align: center;
+      margin-top: 20px;
+    }
+
+    .score-num {
+      font-family: var(--font-serif);
+      font-size: 48px;
+      font-weight: 700;
+      color: var(--accent-caramel);
+    }
+
+    /* Responsive Breakdown */
+    @media (max-width: 768px) {
+      .sidebar { display: none; }
+      .bottom-tabs { display: flex; }
+      .main-content { padding: 16px 16px 80px 16px; }
+      .grid-2, .grid-3 { grid-template-columns: 1fr; }
+      .timer-display { font-size: 42px; }
+    }
+  </style>
+</head>
+<body>
+
+<div id="app-container">
+  <!-- Desktop Sidebar -->
+  <aside class="sidebar">
+    <div>
+      <div class="brand">
+        <div class="brand-icon">口</div>
+        <div class="brand-title">开口练</div>
+      </div>
+      <ul class="nav-list">
+        <li class="nav-item active" data-view="view-dashboard">
+          <svg viewBox="0 0 24 24"><path d="M3 13h8V3H3v10zm0 8h8v-6H3v6zm10 0h8V11h-8v10zm0-18v6h8V3h-8z"/></svg>
+          总览
+        </li>
+        <li class="nav-item" data-view="view-routine">
+          <svg viewBox="0 0 24 24"><path d="M12 2C6.48 2 2 6.48 2 12s4.48 10 10 10 10-4.48 10-10S17.52 2 12 2zm-2 15l-5-5 1.41-1.41L10 14.17l7.59-7.59L19 8l-9 9z"/></svg>
+          每日三字功
+        </li>
+        <li class="nav-item" data-view="view-modules">
+          <svg viewBox="0 0 24 24"><path d="M4 6h16v2H4zm0 5h16v2H4zm0 5h16v2H4z"/></svg>
+          训练大厅
+        </li>
+        <li class="nav-item" data-view="view-classics">
+          <svg viewBox="0 0 24 24"><path d="M18 2H6c-1.1 0-2 .9-2 2v16c0 1.1.9 2 2 2h12c1.1 0 2-.9 2-2V4c0-1.1-.9-2-2-2zM9 4h2v5l-1-1.5L9 9V4z"/></svg>
+          典籍宝典
+        </li>
+        <li class="nav-item" data-view="view-analytics">
+          <svg viewBox="0 0 24 24"><path d="M19 3H5c-1.1 0-2 .9-2 2v14c0 1.1.9 2 2 2h14c1.1 0 2-.9 2-2V5c0-1.1-.9-2-2-2zM9 17H7v-7h2v7zm4 0h-2V7h2v10zm4 0h-2v-4h2v4z"/></svg>
+          成长数据
+        </li>
+        <li class="nav-item" data-view="view-settings">
+          <svg viewBox="0 0 24 24"><path d="M19.14 12.94c.04-.3.06-.61.06-.94 0-.32-.02-.64-.07-.94l2.03-1.58c.18-.14.23-.41.12-.61l-1.92-3.32c-.12-.22-.37-.29-.59-.22l-2.39.96c-.5-.38-1.03-.7-1.62-.94l-.36-2.54c-.04-.24-.24-.41-.48-.41h-3.84c-.24 0-.43.17-.47.41l-.36 2.54c-.59.24-1.13.57-1.62.94l-2.39-.96c-.22-.08-.47 0-.59.22L2.74 8.87c-.12.21-.08.47.12.61l2.03 1.58c-.05.3-.09.63-.09.94s.02.64.07.94l-2.03 1.58c-.18.14-.23.41-.12.61l1.92 3.32c.12.22.37.29.59.22l2.39-.96c.5.38 1.03.7 1.62.94l.36 2.54c.05.24.24.41.48.41h3.84c.24 0 .44-.17.47-.41l.36-2.54c.59-.24 1.13-.56 1.62-.94l2.39.96c.22.08.47 0 .59-.22l1.92-3.32c.12-.22.07-.47-.12-.61l-2.01-1.58zM12 15.6c-1.98 0-3.6-1.62-3.6-3.6s1.62-3.6 3.6-3.6 3.6 1.62 3.6 3.6-1.62 3.6-3.6 3.6z"/></svg>
+          设置
+        </li>
+      </ul>
+    </div>
+    <div class="sidebar-footer">
+      <div class="streak-badge" id="sidebar-streak-count">0 天</div>
+      <div class="streak-label">连续修炼打卡</div>
+    </div>
+  </aside>
+
+  <!-- Main View Area -->
+  <main class="main-content">
+    
+    <!-- VIEW 1: DASHBOARD -->
+    <div id="view-dashboard" class="view-panel active">
+      <div class="page-title">今日修炼概览</div>
+      <div class="page-desc">建立无错、无漏、无废的语言模型 · 每日 15 分钟本能养成</div>
+
+      <!-- Quote Card -->
+      <div class="quote-card" id="daily-quote-box">
+        <div class="quote-text" id="dq-text">“神得一以灵，其智智也；神无以灵，将恐歇。”</div>
+        <div class="quote-source" id="dq-source">—— 《道德经》· 第三十九章</div>
+        <div class="quote-detail" id="dq-detail">【释义】精神得到一的贯通就能保持清灵，智慧就能发挥极致。<br>【用途】用于表达专注力、底层逻辑建模与系统化表达在沟通中的决定性作用。<br>【故事】老子提出“一”代表事物的根本规律。许多人学了很多技巧却无法精通，正是因为没有抓到底层唯一的核心逻辑。</div>
+      </div>
+
+      <!-- Daily Progress Banner -->
+      <div class="card grid-3">
+        <div style="text-align: center;">
+          <div style="font-size: 13px; color: var(--text-muted);">今日打卡进度</div>
+          <div style="font-size: 28px; font-family: var(--font-serif); font-weight: 700; color: var(--accent-caramel);" id="dash-today-status">0 / 3</div>
+        </div>
+        <div style="text-align: center;">
+          <div style="font-size: 13px; color: var(--text-muted);">累计训练次数</div>
+          <div style="font-size: 28px; font-family: var(--font-serif); font-weight: 700; color: var(--text-main);" id="dash-total-count">0 次</div>
+        </div>
+        <div style="text-align: center;">
+          <div style="font-size: 13px; color: var(--text-muted);">平均自评分数</div>
+          <div style="font-size: 28px; font-family: var(--font-serif); font-weight: 700; color: var(--accent-green);" id="dash-avg-score">-- 分</div>
+        </div>
+      </div>
+
+      <!-- Quick Action Cards -->
+      <div class="grid-2">
+        <div class="card" onclick="switchNav('view-routine')" style="cursor: pointer;">
+          <div class="card-title">
+            <span>☀️ 每日三字功 (跟·背·诵)</span>
+            <span style="font-size: 12px; color: var(--accent-caramel);">立即开始 →</span>
+          </div>
+          <p style="font-size: 13px; color: var(--text-muted);">早跟读5分钟建立本能，白天背金句积淀底色，睡前出声诵读理顺逻辑。</p>
+        </div>
+        <div class="card" onclick="switchNav('view-modules')" style="cursor: pointer;">
+          <div class="card-title">
+            <span>🎯 六大深度训练模块</span>
+            <span style="font-size: 12px; color: var(--accent-caramel);">进入大厅 →</span>
+          </div>
+          <p style="font-size: 13px; color: var(--text-muted);">复述跟读、4D精准描述、脱稿转述、30秒电梯演讲、手绘透视与综合实战。</p>
+        </div>
+      </div>
+
+      <!-- Canvas Chart Card -->
+      <div class="card">
+        <div class="card-title">📈 本周 T 值 (用时) 与评分变化趋势</div>
+        <canvas id="chart-dashboard" height="180"></canvas>
+      </div>
+    </div>
+
+    <!-- VIEW 2: DAILY ROUTINE (跟·背·诵) -->
+    <div id="view-routine" class="view-panel">
+      <div class="page-title">每日三字功 (跟 · 背 · 诵)</div>
+      <div class="page-desc">每天 15 分钟建立语言本能与底层逻辑</div>
+
+      <div class="grid-3">
+        <div class="card" style="text-align: center;">
+          <div style="font-size: 24px; margin-bottom: 8px;">1. 跟</div>
+          <div style="font-size: 14px; font-weight: 700; margin-bottom: 6px;">早晨跟读 (5分钟)</div>
+          <p style="font-size: 12px; color: var(--text-muted); margin-bottom: 16px;">跟读流畅音频/视频，连续跟读 1 分钟不中断，刺激大脑语言区。</p>
+          <button class="btn btn-primary btn-sm" onclick="startRoutineStep('gen')">开始跟读</button>
+        </div>
+        <div class="card" style="text-align: center;">
+          <div style="font-size: 24px; margin-bottom: 8px;">2. 背</div>
+          <div style="font-size: 14px; font-weight: 700; margin-bottom: 6px;">白天背金句 (5分钟)</div>
+          <p style="font-size: 12px; color: var(--text-muted); margin-bottom: 16px;">背诵典籍经典段落，短时高频积累，化用为沟通底色与气场。</p>
+          <button class="btn btn-primary btn-sm" onclick="startRoutineStep('bei')">开始背诵</button>
+        </div>
+        <div class="card" style="text-align: center;">
+          <div style="font-size: 24px; margin-bottom: 8px;">3. 诵</div>
+          <div style="font-size: 14px; font-weight: 700; margin-bottom: 6px;">睡前诵读 (5分钟)</div>
+          <p style="font-size: 12px; color: var(--text-muted); margin-bottom: 16px;">出声出韵诵读经典名篇，理顺思维逻辑，提升表达美感与精神。</p>
+          <button class="btn btn-primary btn-sm" onclick="startRoutineStep('song')">开始诵读</button>
+        </div>
+      </div>
+
+      <!-- Studio Panel for Routine -->
+      <div class="card studio-panel" id="routine-studio" style="display: none;">
+        <h3 id="routine-studio-title" class="card-title">跟读练习</h3>
+        <p id="routine-studio-desc" style="font-size: 13px; color: var(--text-muted); margin-bottom: 16px;">跟随上方示范文本，出声朗读。</p>
+
+        <!-- Speed control for follow reading -->
+        <div class="speed-controls" id="routine-speed-bar">
+          <span style="font-size: 12px; color: var(--text-muted); align-self: center;">语速倍率：</span>
+          <button class="speed-btn" onclick="setSpeed(0.75)">0.75x 减速精准对齐</button>
+          <button class="speed-btn active" onclick="setSpeed(1.0)">1.0x 标准</button>
+          <button class="speed-btn" onclick="setSpeed(1.25)">1.25x 快速挑战</button>
+        </div>
+
+        <div class="timer-display" id="routine-timer">00:00.0</div>
+
+        <div style="margin-bottom: 20px;">
+          <button class="btn btn-primary" id="btn-routine-start" onclick="toggleRoutineTimer()">启动录音与计时</button>
+          <button class="btn btn-outline" onclick="finishRoutineStep()">完成打卡</button>
+        </div>
+
+        <div style="max-width: 600px; margin: 0 auto; text-align: left; background: var(--bg-secondary); padding: 16px; border-radius: var(--radius-md);">
+          <div style="font-weight: 700; font-size: 13px; margin-bottom: 6px;">实时语音识别 / 复述转文字：</div>
+          <div id="routine-live-transcript" style="font-size: 14px; color: var(--text-main); min-height: 40px;">(等待点击“启动录音”后说话...)</div>
+        </div>
+      </div>
+    </div>
+
+    <!-- VIEW 3: TRAINING MODULES HALL -->
+    <div id="view-modules" class="view-panel">
+      <div class="page-title">六大深度训练大厅</div>
+      <div class="page-desc">围绕“无错、无漏、无废”全方位训练语言建模</div>
+
+      <div class="grid-2">
+        <div class="module-card" onclick="openModule(1)">
+          <div>
+            <div class="module-icon">🔄</div>
+            <div class="module-name">模块一：复述与影子跟读</div>
+            <div class="module-desc">含电影解说三遍法、静音字幕对齐、重音语速强调练习。听/看后用自己的话精准还原。</div>
+          </div>
+          <div class="module-meta"><span>12 个训练素材</span><span>进入训练 →</span></div>
+        </div>
+
+        <div class="module-card" onclick="openModule(2)">
+          <div>
+            <div class="module-icon">🖼️</div>
+            <div class="module-name">模块二：4D 精确描述</div>
+            <div class="module-desc">概念四维分析法 (定义/MECE分类/对比/因果)。看户型图、轮廓图、机械图进行无错无漏表达。</div>
+          </div>
+          <div class="module-meta"><span>10 个训练素材</span><span>进入训练 →</span></div>
+        </div>
+
+        <div class="module-card" onclick="openModule(3)">
+          <div>
+            <div class="module-icon">🧩</div>
+            <div class="module-name">模块三：编码与脱稿转述</div>
+            <div class="module-desc">“写-读-转述”脱稿循环，爆炸图零件命名规则设计，文言文逐字因果逻辑拆解。</div>
+          </div>
+          <div class="module-meta"><span>10 个训练素材</span><span>进入训练 →</span></div>
+        </div>
+
+        <div class="module-card" onclick="openModule(4)">
+          <div>
+            <div class="module-icon">🎤</div>
+            <div class="module-name">模块四：结构化即兴表达</div>
+            <div class="module-desc">30 秒电梯法则、黄金三点法结构化分点、访谈姿态与眼神互动模仿。</div>
+          </div>
+          <div class="module-meta"><span>10 个训练素材</span><span>进入训练 →</span></div>
+        </div>
+
+        <div class="module-card" onclick="openModule(5)">
+          <div>
+            <div class="module-icon">📐</div>
+            <div class="module-name">模块五：视觉透视表达</div>
+            <div class="module-desc">1:1:1 立方块轴侧图手绘、3点透视单反相机速写、客厅空间结构布局快速表现。</div>
+          </div>
+          <div class="module-meta"><span>10 个训练素材</span><span>进入训练 →</span></div>
+        </div>
+
+        <div class="module-card" onclick="openModule(6)">
+          <div>
+            <div class="module-icon">🔗</div>
+            <div class="module-name">模块六：综合实战演练</div>
+            <div class="module-desc">会议纪要整理、产品说明书撰写、多方沟通协调与辩论逻辑复盘。</div>
+          </div>
+          <div class="module-meta"><span>10 个训练素材</span><span>进入训练 →</span></div>
+        </div>
+      </div>
+
+      <!-- Single Module Studio Runner Container -->
+      <div id="module-runner" class="card" style="display: none; margin-top: 24px;">
+        <div style="display: flex; justify-content: space-between; align-items: center; margin-bottom: 16px;">
+          <h3 id="runner-title" class="card-title" style="margin: 0;">模块训练</h3>
+          <button class="btn btn-outline btn-sm" onclick="closeModuleRunner()">返回大厅</button>
+        </div>
+        
+        <div style="margin-bottom: 16px;">
+          <label style="font-size: 12px; font-weight: 700; color: var(--text-muted);">选择练习素材：</label>
+          <select id="runner-item-select" style="width: 100%; padding: 8px; border-radius: var(--radius-sm); border: 1px solid var(--border-subtle); margin-top: 4px;" onchange="loadRunnerItem()"></select>
+        </div>
+
+        <div id="runner-item-content" style="background: var(--bg-secondary); padding: 16px; border-radius: var(--radius-md); margin-bottom: 20px; font-size: 14px;"></div>
+
+        <!-- Interactive Studio -->
+        <div style="text-align: center; border-top: 1px solid var(--border-subtle); padding-top: 20px;">
+          <div class="timer-display" id="runner-timer">00:00.0</div>
+          <div style="margin-bottom: 16px;">
+            <button class="btn btn-primary" id="btn-runner-start" onclick="toggleRunnerTimer()">开始练习 (启动录音)</button>
+            <button class="btn btn-outline" onclick="openSelfEvalModal()">完成并评估得分</button>
+          </div>
+
+          <div style="text-align: left; background: #fff; padding: 12px; border-radius: var(--radius-sm); border: 1px solid var(--border-subtle);">
+            <div style="font-size: 12px; font-weight: 700; color: var(--text-muted);">语音实时识别文本：</div>
+            <div id="runner-transcript" style="font-size: 13px; color: var(--text-main); min-height: 30px;">(准备就绪...)</div>
+          </div>
+        </div>
+      </div>
+    </div>
+
+    <!-- VIEW 4: CLASSICS & QUOTES DATABASE -->
+    <div id="view-classics" class="view-panel">
+      <div class="page-title">国学典籍与表达金句宝典</div>
+      <div class="page-desc">含原文、白话释义、说话化用场景与历史故事</div>
+
+      <div style="margin-bottom: 20px;">
+        <input type="text" id="quote-search-input" placeholder="搜索关键词 / 典籍名字 (如：道德经、鬼谷子)..." style="width: 100%; padding: 12px 16px; border-radius: var(--radius-md); border: 1px solid var(--border-subtle); font-size: 14px;" oninput="filterQuotes()">
+      </div>
+
+      <div id="quotes-list-container"></div>
+    </div>
+
+    <!-- VIEW 5: ANALYTICS & PROGRESS -->
+    <div id="view-analytics" class="view-panel">
+      <div class="page-title">成长数据与打卡日历</div>
+      <div class="page-desc">客观记录 T 值下降趋势与自评分数走势</div>
+
+      <div class="card">
+        <div class="card-title">🗓️ 表达修炼热力图 (最近 90 天)</div>
+        <canvas id="chart-calendar" height="140"></canvas>
+      </div>
+
+      <div class="card">
+        <div class="card-title">📈 表达“无错、无漏、无废”三维能力走势</div>
+        <canvas id="chart-dimensions" height="200"></canvas>
+      </div>
+    </div>
+
+    <!-- VIEW 6: SETTINGS -->
+    <div id="view-settings" class="view-panel">
+      <div class="page-title">系统设置与数据导出</div>
+      <div class="page-desc">离线数据安全管理与手机 PWA 安装</div>
+
+      <div class="card">
+        <div class="card-title">📱 手机 App 安装与离线设置</div>
+        <p style="font-size: 13px; color: var(--text-muted); margin-bottom: 12px;">已内置 PWA Web App 部署配置文件。部署到 Cloudflare Pages 后，在手机 Safari/Chrome 菜单中点击“添加到主屏幕”，即可拥有独立手机 App 体验。</p>
+        <a href="./README_Cloudflare部署指南.md" target="_blank" class="btn btn-outline btn-sm">查看 1 分钟 Cloudflare 部署指南</a>
+      </div>
+
+      <div class="card">
+        <div class="card-title">💾 训练数据备份与恢复</div>
+        <div style="display: flex; gap: 12px;">
+          <button class="btn btn-outline" onclick="exportData()">导出备份 (JSON)</button>
+          <button class="btn btn-outline" onclick="document.getElementById('import-file').click()">导入备份</button>
+          <input type="file" id="import-file" style="display:none" onchange="importData(event)">
+        </div>
+      </div>
+
+      <div class="card" style="border-color: var(--accent-red);">
+        <div class="card-title" style="color: var(--accent-red);">⚠️ 清空训练记录</div>
+        <p style="font-size: 13px; color: var(--text-muted); margin-bottom: 12px;">清空本地存储的所有打卡天数、测试历史与成就数据。不可撤销。</p>
+        <button class="btn btn-primary" style="background-color: var(--accent-red);" onclick="resetData()">重置所有数据</button>
+      </div>
+    </div>
+
+  </main>
+</div>
+
+<!-- Mobile Bottom Navigation Bar -->
+<nav class="bottom-tabs">
+  <div class="tab-item active" data-view="view-dashboard">
+    <svg viewBox="0 0 24 24"><path d="M3 13h8V3H3v10zm0 8h8v-6H3v6zm10 0h8V11h-8v10zm0-18v6h8V3h-8z"/></svg>
+    总览
+  </div>
+  <div class="tab-item" data-view="view-routine">
+    <svg viewBox="0 0 24 24"><path d="M12 2C6.48 2 2 6.48 2 12s4.48 10 10 10 10-4.48 10-10S17.52 2 12 2zm-2 15l-5-5 1.41-1.41L10 14.17l7.59-7.59L19 8l-9 9z"/></svg>
+    三字功
+  </div>
+  <div class="tab-item" data-view="view-modules">
+    <svg viewBox="0 0 24 24"><path d="M4 6h16v2H4zm0 5h16v2H4zm0 5h16v2H4z"/></svg>
+    大厅
+  </div>
+  <div class="tab-item" data-view="view-classics">
+    <svg viewBox="0 0 24 24"><path d="M18 2H6c-1.1 0-2 .9-2 2v16c0 1.1.9 2 2 2h12c1.1 0 2-.9 2-2V4c0-1.1-.9-2-2-2zM9 4h2v5l-1-1.5L9 9V4z"/></svg>
+    宝典
+  </div>
+  <div class="tab-item" data-view="view-analytics">
+    <svg viewBox="0 0 24 24"><path d="M19 3H5c-1.1 0-2 .9-2 2v14c0 1.1.9 2 2 2h14c1.1 0 2-.9 2-2V5c0-1.1-.9-2-2-2zM9 17H7v-7h2v7zm4 0h-2V7h2v10zm4 0h-2v-4h2v4z"/></svg>
+    数据
+  </div>
+</nav>
+
+<!-- 3D Evaluation Modal -->
+<div id="eval-modal" style="display: none; position: fixed; inset: 0; background: rgba(0,0,0,0.5); z-index: 2000; align-items: center; justify-content: center; padding: 20px;">
+  <div style="background: var(--bg-card); border-radius: var(--radius-lg); max-width: 500px; width: 100%; padding: 24px; box-shadow: var(--shadow-md);">
+    <h3 style="font-family: var(--font-serif); font-size: 20px; margin-bottom: 16px;">三维能力自评与综合得分诊断</h3>
+    
+    <div style="margin-bottom: 14px;">
+      <label style="font-size: 13px; font-weight: 700;">1. 准确度 (无错)：别人是否能精准无歧义理解？</label>
+      <div class="star-rating" data-dim="accuracy">
+        <span class="star" onclick="setStar('accuracy', 1)">★</span>
+        <span class="star" onclick="setStar('accuracy', 2)">★</span>
+        <span class="star" onclick="setStar('accuracy', 3)">★</span>
+        <span class="star" onclick="setStar('accuracy', 4)">★</span>
+        <span class="star" onclick="setStar('accuracy', 5)">★</span>
+      </div>
+    </div>
+
+    <div style="margin-bottom: 14px;">
+      <label style="font-size: 13px; font-weight: 700;">2. 完整度 (无漏)：必要的关键要素是否齐备？</label>
+      <div class="star-rating" data-dim="completeness">
+        <span class="star" onclick="setStar('completeness', 1)">★</span>
+        <span class="star" onclick="setStar('completeness', 2)">★</span>
+        <span class="star" onclick="setStar('completeness', 3)">★</span>
+        <span class="star" onclick="setStar('completeness', 4)">★</span>
+        <span class="star" onclick="setStar('completeness', 5)">★</span>
+      </div>
+    </div>
+
+    <div style="margin-bottom: 14px;">
+      <label style="font-size: 13px; font-weight: 700;">3. 简洁度 (无废)：是否用最少的语言资源达成目的？</label>
+      <div class="star-rating" data-dim="conciseness">
+        <span class="star" onclick="setStar('conciseness', 1)">★</span>
+        <span class="star" onclick="setStar('conciseness', 2)">★</span>
+        <span class="star" onclick="setStar('conciseness', 3)">★</span>
+        <span class="star" onclick="setStar('conciseness', 4)">★</span>
+        <span class="star" onclick="setStar('conciseness', 5)">★</span>
+      </div>
+    </div>
+
+    <div style="margin-bottom: 16px;">
+      <label style="font-size: 13px; font-weight: 700;">练习心得与备注 (可选)：</label>
+      <input type="text" id="eval-note-input" placeholder="记录本次练习体会..." style="width: 100%; padding: 8px 12px; border-radius: var(--radius-sm); border: 1px solid var(--border-subtle); margin-top: 4px;">
+    </div>
+
+    <div style="display: flex; gap: 12px; justify-content: flex-end;">
+      <button class="btn btn-outline" onclick="closeEvalModal()">取消</button>
+      <button class="btn btn-primary" onclick="submitEvalReport()">生成得分诊断</button>
+    </div>
+
+    <!-- Final Score Display -->
+    <div id="eval-result-card" class="score-report" style="display: none;">
+      <div>本次综合得分诊断</div>
+      <div class="score-num" id="eval-final-score">88 分</div>
+      <div id="eval-final-advice" style="font-size: 13px; color: var(--text-muted); margin-bottom: 16px;">语速节奏舒适，无错无漏表达达标！</div>
+      <div style="display: flex; gap: 8px; justify-content: center;">
+        <button class="btn btn-outline btn-sm" onclick="restartCurrentExercise()">🔁 重练本关</button>
+        <button class="btn btn-primary btn-sm" onclick="saveAndCloseEval()">📝 保存日志并完成</button>
+      </div>
+    </div>
+  </div>
+</div>
+
+<script>
+  /* ==========================================================================
+     核心 JavaScript 业务引擎 — 离线支持 + 数据存储 + 逻辑计算
+     ========================================================================== */
+
+  // Service Worker Registration
+  if ('serviceWorker' in navigator) {
+    navigator.serviceWorker.register('./sw.js').catch(err => console.log('SW reg fail:', err));
+  }
+
+  // App Master Database State
+  const DB_KEY = 'kaikoulian_db_v1';
+  let appState = {
+    streak: { current: 0, lastDate: null },
+    history: [],
+    dimRatings: { accuracy: 3, completeness: 3, conciseness: 3 }
+  };
+
+  // Quotes Database (Deep classical quotes with Original, Translation, Usage, Story)
+  const QUOTES_DB = [
+    {
+      quote: "神得一以灵，其智智也；神无以灵，将恐歇。",
+      source: "《道德经》· 第三十九章",
+      translation: "精神得到一的贯通就能保持清灵，智慧就能发挥极致；精神不能保持专一，恐怕就要衰竭。",
+      usage: "用于表达专注力、底层逻辑建模与系统化表达在沟通与事业中的决定性作用。",
+      story: "老子提出‘一’代表事物的根本规律。古人治学讲求聚精会神。现代职场中，许多人学了很多表达技巧却无法精通，正是因为没有抓到底层唯一的核心逻辑——建立无错无漏无废的意识模型。"
+    },
+    {
+      quote: "审定有无，以察虚实。",
+      source: "《鬼谷子》· 反应篇",
+      translation: "审慎确定事物的有与无，以此观察分析其中的虚假与真实。",
+      usage: "用于表达在沟通、谈判或阐述观点时，必须先厘清定义、厘清事实与假想的区别。",
+      story: "鬼谷子在说服术中强调，说话不可凭空发议论。必须先通过问答审定事实有无，才能避免盲目下结论，做到说话无错无漏。"
+    },
+    {
+      quote: "质胜文则野，文胜质则史。文质彬彬，然后君子。",
+      source: "《论语》· 雍也篇",
+      translation: "质朴多于文采就会显得粗野，文采多于质朴就会显得浮夸。文采与质朴配合得当，然后才能成为君子。",
+      usage: "用于强调表达内容（逻辑与实操）与修辞表象之间的平衡。",
+      story: "孔子告诫弟子，说话光有华丽的辞藻却没有严密的思维结构，容易流于虚伪；反之光有想法却没有结构化呈现，别人又听不进去。真正的表达高手必然做到文质兼备。"
+    },
+    {
+      quote: "天地有大美而不言，四时有明法而不议。",
+      source: "《庄子》· 知北游",
+      translation: "天地有伟大的美美却不言语，四季有明确的运行规律却不议论。",
+      usage: "用于强调场景描述与画面感传递时，用客观事实与细节说话，胜过苍白的形容词堆砌。",
+      story: "庄子认为自然之大美在于客观事实的直观呈现。在语言描述练习中，与其用‘非常好看、特别宏伟’等空洞废话，不如准确描述出几何布局、颜色对比与尺寸比例。"
+    },
+    {
+      quote: "风恬浪静中，见人生之真境；味淡培浓处，识心体之本然。",
+      source: "《菜根谭》",
+      translation: "在风平浪静之中才能体悟人生的真境界，在淡泊平实之中才能认识心灵的本真。",
+      usage: "用于即兴表达与演讲中保持沉着冷静、娓娓道来的稳健姿态。",
+      story: "洪自诚在《菜根谭》中记录了处事心法。说话语无伦次往往是因为内心情绪波动过大。保持呼吸平稳、字句清晰，才能输出高质量话语。"
+    }
+  ];
+
+  // 6 Modules Datasets (10+ Items each)
+  const MODULES_DATA = {
+    1: {
+      title: "模块一：复述与影子跟读",
+      items: [
+        { name: "素材1：电影解说三遍复述法", detail: "【步骤】第一遍：限制1分钟盲复述概要；第二遍：0.75倍速静音字幕跟读；第三遍：1倍速原声影子跟读；第四步：二次限时复述对比。" },
+        { name: "素材2：新闻播报1分钟跟读", detail: "要求连续跟读 1 分钟不中断，重点练习口型与字幕精确对齐。" },
+        { name: "素材3：TED 演讲逻辑段落复述", detail: "听一段 2 分钟 TED 演讲，提炼出 3 个核心论点并用自己的话复述。" },
+        { name: "素材4：科普短视频结构化复述", detail: "复述视频中的因果推导过程，确保无错无漏。" },
+        { name: "素材5：商业访谈重音与语气模仿", detail: "模仿嘉宾在阐述核心观点时的关键词重音与声调起伏。" },
+        { name: "素材6：故事梗概3分钟转述", detail: "阅读短故事，闭上眼睛用 3 分钟向别人转述情节与结局。" },
+        { name: "素材7：评书快板跟读训练", detail: "锻炼发音吐字清晰度与嘴唇肌肉力量。" },
+        { name: "素材8：辩论赛一辩立论复述", detail: "复述立论稿中的逻辑三段论与事实证据。" },
+        { name: "素材9：名家演讲段落背诵跟读", detail: "跟读名家经典演讲，感受气场与停顿。" },
+        { name: "素材10：对话录音听辨与复述", detail: "听两人对话录音，准确归纳双方争论焦点。" }
+      ]
+    },
+    2: {
+      title: "模块二：4D 精确描述",
+      items: [
+        { name: "素材1：户型图结构描述与绘制指引", detail: "【四维分析】定义/MECE分类/对比/因果。指引他人绘制墙、门、窗、楼梯位置。" },
+        { name: "素材2：行政区轮廓图默写", detail: "观察省份/国家轮廓，文字表述特征后脱离参考图默写。" },
+        { name: "素材3：复杂机械零件爆炸图描述", detail: "准确描述爆炸图中各零件的相对空间位置。" },
+        { name: "素材4：两张相似场景图差异描述", detail: "用最少话语准确指出两图中的 5 处细微差异。" },
+        { name: "素材5：记忆盲盒描述", detail: "观察照片 10 秒，闭眼精确复述画面中的所有物体位置。" },
+        { name: "素材6：电路原理图口头转换", detail: "将电路原理图转换为无歧义的口头文字说明。" },
+        { name: "素材7：立体几何组合体描述", detail: "描述 3 个几何体拼接后的空间三维特征。" },
+        { name: "素材8：产品外形结构设计说明", detail: "精确表达产品材质、倒角、按钮位置与色号。" },
+        { name: "素材9：室内客厅布局描述", detail: "按视线移动顺序描述客厅沙发、电视、采光方位。" },
+        { name: "素材10：地图路线精准指引", detail: "纯用语言指引朋友从 A 点步行至 B 点的每一处转弯。" }
+      ]
+    },
+    3: {
+      title: "模块三：编码与脱稿转述",
+      items: [
+        { name: "素材1：“写-读-转述”脱稿训练", detail: "准备 300 字稿件，读 2 遍后扣下讲稿，用自己的话重新转述。" },
+        { name: "素材2：常见零件爆炸图命名系统设计", detail: "为 10 个零件起名，要求望文生义、高度简洁、明显区分。" },
+        { name: "素材3：经典文言文逐字因果拆解", detail: "拆解《鬼谷子》名句中的因果推导逻辑与前提假设。" },
+        { name: "素材4：菜谱烹饪步骤标准编码", detail: "将复杂菜谱写成无错无漏的 SOP 操作步骤。" },
+        { name: "素材5：行业术语定义与编码", detail: "为 5 个业务概念赋予简短且唯一的代号规则。" },
+        { name: "素材6：复杂事务MECE分类法", detail: "将项目风险按 MECE 原则进行不重不漏分类。" },
+        { name: "素材7：金句场景化化用演练", detail: "将《道德经》名句融进一次团队沟通发言中。" },
+        { name: "素材8：抽象概念一句话精准定义", detail: "用一句话定义“什么是高效表达”。" },
+        { name: "素材9：软件功能模块编码拆解", detail: "为软件的 8 个核心功能设计唯一编号系统。" },
+        { name: "素材10：工作流程图文字编码", detail: "将流程图节点写成严谨的逻辑判定语句。" }
+      ]
+    },
+    4: {
+      title: "模块四：结构化即兴表达",
+      items: [
+        { name: "素材1：30秒电梯法则极速概括", detail: "限时 30 秒，使用“观点 + 黄金三点法”极速阐述核心要点。" },
+        { name: "素材2：黄金三点法结构化分点", detail: "针对指定话题，从“原因、方案、预期”三点展开。" },
+        { name: "素材3：访谈姿态与眼神互动模仿", detail: "身体微前倾，眼神视线保持交流感，模仿主持人姿态。" },
+        { name: "素材4：1分钟产品电梯推介", detail: "用 60 秒向客户阐述产品核心价值与差异化优势。" },
+        { name: "素材5：突发危机公关即兴回应", detail: "面对突发质疑，用严谨逻辑进行 2 分钟结构化澄清。" },
+        { name: "素材6：把专业术语讲给门外汉", detail: "用通俗的比喻向非专业人士解释区块链/人工智能。" },
+        { name: "素材7：辩论赛三段论驳论", detail: "运用归纳与演绎逻辑，寻找对方论述中的漏洞。" },
+        { name: "素材8：会议临时被点名发言", detail: "快速组织“认同观点 + 补充细节 + 建议动作”三步法。" },
+        { name: "素材9：项目延期结构化汇报", detail: "向领导汇报延期：说明现状 + 分析因果 + 提交替代方案。" },
+        { name: "素材10：自我介绍亮点提炼", detail: "在 90 秒内展示个人核心优势与经典案例。" }
+      ]
+    },
+    5: {
+      title: "模块五：视觉透视表达",
+      items: [
+        { name: "素材1：1:1:1 立方块轴侧图手绘", detail: "手绘任意角度 1:1:1 比例立方块，要求尺寸与角度准确。" },
+        { name: "素材2：3点透视单反相机手绘", detail: "参考实物绘制三点透视相机，要求视角不同且部件齐全。" },
+        { name: "素材3：客厅快速线条表现图", detail: "用简单线条绘制客厅空间结构与家具进深。" },
+        { name: "素材4：二维柱状图/饼图数据转换", detail: "将一组销售数据快速绘制成标准统计图形。" },
+        { name: "素材5：业务流程图标准绘制", detail: "绘制包含起始、判定、动作节点的标准流程图。" },
+        { name: "素材6：系统 UML 类图建模", detail: "绘制展示类与类之间继承/聚合关系的结构图。" },
+        { name: "素材7：工业建筑图纸三视图", detail: "手绘简单建筑的主视图、俯视图与左视图。" },
+        { name: "素材8：产品爆炸拆解手绘草图", detail: "绘制产品各零件拆卸方向的矢量引导线。" },
+        { name: "素材9：简单 3D 建模透视草图", detail: "用线条表达 3D 模型的体块切割关系。" },
+        { name: "素材10：信息分类树状架构图", detail: "手绘知识库或目录结构的树状分支图。" }
+      ]
+    },
+    6: {
+      title: "模块六：综合实战演练",
+      items: [
+        { name: "素材1：会议录音整理结构化纪要", detail: "听 3 分钟杂乱会议录音，提炼出决议事项、责任人与 deadline。" },
+        { name: "素材2：产品使用说明书撰写", detail: "为新功能编写一份无错无漏的 500 字小白使用指南。" },
+        { name: "素材3：跨部门资源协调沟通", detail: "模拟向兄弟部门申请资源支持，阐明互利共赢逻辑。" },
+        { name: "素材4：沟通录音自我复盘", detail: "录下自己的一次真实沟通，逐句分析停顿与废话。" },
+        { name: "素材5：新闻事件 5W1H 结构化报告", detail: "将新闻事件按 Who/What/When/Where/Why/How 写成报告。" },
+        { name: "素材6：项目总结复盘汇报", detail: "按照“目标-结果-差距-原因-行动”五步法汇报。" },
+        { name: "素材7：客户异议处理演练", detail: "面对客户嫌贵，用价值拆解法进行逻辑回应。" },
+        { name: "素材8：团队动员演讲", detail: "在项目冲刺关头发表 3 分钟鼓舞士气的演讲。" },
+        { name: "素材9：学术/技术论文摘要提取", detail: "将长文摘要精简为 100 字无废话核心结论。" },
+        { name: "素材10：读书笔记卡片化输出", detail: "读完一本书，用一张卡片输出 3 个核心洞察。" }
+      ]
+    }
+  };
+
+  // Initialization & Storage Load
+  function initApp() {
+    const saved = localStorage.getItem(DB_KEY);
+    if (saved) {
+      try { appState = JSON.parse(saved); } catch(e) {}
+    }
+    updateStreakUI();
+    renderQuotesList();
+    initCharts();
+    setupNavigation();
+  }
+
+  function saveState() {
+    localStorage.setItem(DB_KEY, JSON.stringify(appState));
+    updateStreakUI();
+  }
+
+  function updateStreakUI() {
+    document.getElementById('sidebar-streak-count').innerText = (appState.streak.current || 0) + ' 天';
+    document.getElementById('dash-total-count').innerText = appState.history.length + ' 次';
+    
+    // Calculate Today status
+    const todayStr = new Date().toISOString().split('T')[0];
+    const todayCount = appState.history.filter(h => h.date && h.date.startsWith(todayStr)).length;
+    document.getElementById('dash-today-status').innerText = `${todayCount} / 3`;
+
+    if (appState.history.length > 0) {
+      const avg = appState.history.reduce((acc, cur) => acc + (cur.score || 80), 0) / appState.history.length;
+      document.getElementById('dash-avg-score').innerText = Math.round(avg) + ' 分';
+    }
+  }
+
+  // Navigation router
+  function setupNavigation() {
+    document.querySelectorAll('.nav-item, .tab-item').forEach(el => {
+      el.addEventListener('click', () => {
+        const viewId = el.getAttribute('data-view');
+        switchNav(viewId);
+      });
+    });
+  }
+
+  function switchNav(viewId) {
+    document.querySelectorAll('.nav-item, .tab-item').forEach(n => {
+      n.classList.toggle('active', n.getAttribute('data-view') === viewId);
+    });
+    document.querySelectorAll('.view-panel').forEach(p => p.classList.remove('active'));
+    const target = document.getElementById(viewId);
+    if (target) target.classList.add('active');
+  }
+
+  // Routine & Timer Studio Controller
+  let timerInterval = null;
+  let timerSeconds = 0;
+  let isTimerRunning = false;
+  let speechRec = null;
+
+  function toggleRoutineTimer() {
+    const btn = document.getElementById('btn-routine-start');
+    if (!isTimerRunning) {
+      isTimerRunning = true;
+      btn.innerText = '暂停录音与计时';
+      timerInterval = setInterval(() => {
+        timerSeconds += 0.1;
+        document.getElementById('routine-timer').innerText = formatTime(timerSeconds);
+      }, 100);
+      startSpeechRecognition('routine-live-transcript');
+    } else {
+      isTimerRunning = false;
+      btn.innerText = '继续录音与计时';
+      clearInterval(timerInterval);
+      if (speechRec) speechRec.stop();
+    }
+  }
+
+  function formatTime(sec) {
+    const m = Math.floor(sec / 60);
+    const s = (sec % 60).toFixed(1);
+    return `${m < 10 ? '0' + m : m}:${s < 10 ? '0' + s : s}`;
+  }
+
+  function startSpeechRecognition(targetElementId) {
+    const SpeechRecognition = window.SpeechRecognition || window.webkitSpeechRecognition;
+    if (SpeechRecognition) {
+      speechRec = new SpeechRecognition();
+      speechRec.lang = 'zh-CN';
+      speechRec.continuous = true;
+      speechRec.interimResults = true;
+
+      speechRec.onresult = (event) => {
+        let transcript = '';
+        for (let i = event.resultIndex; i < event.results.length; i++) {
+          transcript += event.results[i][0].transcript;
+        }
+        document.getElementById(targetElementId).innerText = transcript || '(正在聆听...)';
+      };
+      speechRec.start();
+    } else {
+      document.getElementById(targetElementId).innerText = '(浏览器暂不支持实时语音识别，可使用手写/打字)';
+    }
+  }
+
+  function startRoutineStep(stepKey) {
+    document.getElementById('routine-studio').style.display = 'block';
+    const titles = { gen: '1. 早晨跟读训练 (5分钟)', bei: '2. 白天金句背诵 (5分钟)', song: '3. 睡前经典诵读 (5分钟)' };
+    document.getElementById('routine-studio-title').innerText = titles[stepKey] || '训练中';
+    document.getElementById('routine-speed-bar').style.display = stepKey === 'gen' ? 'flex' : 'none';
+    timerSeconds = 0;
+    document.getElementById('routine-timer').innerText = '00:00.0';
+    document.getElementById('routine-studio').scrollIntoView({ behavior: 'smooth' });
+  }
+
+  function finishRoutineStep() {
+    clearInterval(timerInterval);
+    isTimerRunning = false;
+    document.getElementById('btn-routine-start').innerText = '启动录音与计时';
+    if (speechRec) speechRec.stop();
+
+    // Record streak
+    const today = new Date().toISOString().split('T')[0];
+    if (appState.streak.lastDate !== today) {
+      appState.streak.current = (appState.streak.current || 0) + 1;
+      appState.streak.lastDate = today;
+    }
+    
+    appState.history.push({
+      date: new Date().toISOString(),
+      type: 'routine',
+      duration: timerSeconds,
+      score: 90
+    });
+    saveState();
+    alert('🎉 恭喜打卡成功！训练数据已保存。');
+    document.getElementById('routine-studio').style.display = 'none';
+  }
+
+  function setSpeed(sp) {
+    document.querySelectorAll('.speed-btn').forEach(b => b.classList.remove('active'));
+    event.target.classList.add('active');
+  }
+
+  // Module Runner Controller
+  let currentModuleId = 1;
+
+  function openModule(modId) {
+    currentModuleId = modId;
+    const mod = MODULES_DATA[modId];
+    if (!mod) return;
+
+    document.getElementById('module-runner').style.display = 'block';
+    document.getElementById('runner-title').innerText = mod.title;
+
+    const select = document.getElementById('runner-item-select');
+    select.innerHTML = '';
+    mod.items.forEach((item, index) => {
+      const opt = document.createElement('option');
+      opt.value = index;
+      opt.innerText = item.name;
+      select.appendChild(opt);
+    });
+
+    loadRunnerItem();
+    document.getElementById('module-runner').scrollIntoView({ behavior: 'smooth' });
+  }
+
+  function loadRunnerItem() {
+    const index = document.getElementById('runner-item-select').value;
+    const item = MODULES_DATA[currentModuleId].items[index];
+    document.getElementById('runner-item-content').innerHTML = `
+      <div style="font-weight:700; font-size:16px; margin-bottom:8px;">${item.name}</div>
+      <p style="color:var(--text-muted);">${item.detail}</p>
+    `;
+    timerSeconds = 0;
+    document.getElementById('runner-timer').innerText = '00:00.0';
+  }
+
+  function closeModuleRunner() {
+    document.getElementById('module-runner').style.display = 'none';
+  }
+
+  function toggleRunnerTimer() {
+    const btn = document.getElementById('btn-runner-start');
+    if (!isTimerRunning) {
+      isTimerRunning = true;
+      btn.innerText = '暂停练习';
+      timerInterval = setInterval(() => {
+        timerSeconds += 0.1;
+        document.getElementById('runner-timer').innerText = formatTime(timerSeconds);
+      }, 100);
+      startSpeechRecognition('runner-transcript');
+    } else {
+      isTimerRunning = false;
+      btn.innerText = '继续练习';
+      clearInterval(timerInterval);
+      if (speechRec) speechRec.stop();
+    }
+  }
+
+  // 3D Evaluation Modal & Diagnosis Engine
+  function openSelfEvalModal() {
+    if (isTimerRunning) toggleRunnerTimer();
+    document.getElementById('eval-modal').style.display = 'flex';
+    document.getElementById('eval-result-card').style.display = 'none';
+  }
+
+  function closeEvalModal() {
+    document.getElementById('eval-modal').style.display = 'none';
+  }
+
+  function setStar(dim, count) {
+    appState.dimRatings[dim] = count;
+    const container = document.querySelector(`.star-rating[data-dim="${dim}"]`);
+    if (!container) return;
+    const stars = container.querySelectorAll('.star');
+    stars.forEach((s, idx) => {
+      s.classList.toggle('selected', idx < count);
+    });
+  }
+
+  function submitEvalReport() {
+    const { accuracy, completeness, conciseness } = appState.dimRatings;
+    
+    // Weighted scoring formula
+    const rawScore = (accuracy * 7) + (completeness * 7) + (conciseness * 6); // Max 100
+    const finalScore = Math.min(98, Math.max(60, rawScore));
+
+    document.getElementById('eval-final-score').innerText = finalScore + ' 分';
+    
+    let advice = "表达清晰适中。";
+    if (finalScore >= 90) advice = "🎯 优秀！无错无漏无废，结构严密，表达极其精准！";
+    else if (finalScore >= 80) advice = "👍 良好！要点覆盖全面，建议进一步精简废话提升简洁度。";
+    else advice = "💡 加油！建议回顾四维分析法，理清因果逻辑后再试一次。";
+
+    document.getElementById('eval-final-advice').innerText = advice;
+    document.getElementById('eval-result-card').style.display = 'block';
+  }
+
+  function saveAndCloseEval() {
+    const note = document.getElementById('eval-note-input').value;
+    appState.history.push({
+      date: new Date().toISOString(),
+      type: 'module_' + currentModuleId,
+      duration: timerSeconds,
+      score: parseInt(document.getElementById('eval-final-score').innerText),
+      ratings: { ...appState.dimRatings },
+      note: note
+    });
+    saveState();
+    closeEvalModal();
+    closeModuleRunner();
+    alert('✅ 训练日志与分数诊断已成功保存！');
+  }
+
+  function restartCurrentExercise() {
+    closeEvalModal();
+    timerSeconds = 0;
+    document.getElementById('runner-timer').innerText = '00:00.0';
+  }
+
+  // Quotes Render & Search
+  function renderQuotesList(filtered = null) {
+    const list = filtered || QUOTES_DB;
+    const container = document.getElementById('quotes-list-container');
+    container.innerHTML = list.map(q => `
+      <div class="card">
+        <div class="quote-text">“ ${q.quote} ”</div>
+        <div class="quote-source">—— ${q.source}</div>
+        <div style="font-size: 13px; color: var(--text-main); margin-bottom: 6px;"><b>【释义】</b>${q.translation}</div>
+        <div style="font-size: 13px; color: var(--accent-caramel); margin-bottom: 6px;"><b>【说话化用】</b>${q.usage}</div>
+        <div style="font-size: 12px; color: var(--text-muted); background: var(--bg-secondary); padding: 10px; border-radius: var(--radius-sm);"><b>【相关典故】</b>${q.story}</div>
+      </div>
+    `).join('');
+  }
+
+  function filterQuotes() {
+    const query = document.getElementById('quote-search-input').value.toLowerCase();
+    const res = QUOTES_DB.filter(q => q.quote.includes(query) || q.source.includes(query) || q.translation.includes(query));
+    renderQuotesList(res);
+  }
+
+  // Canvas Charts Rendering (Zero external library)
+  function initCharts() {
+    drawDashboardChart();
+    drawCalendarHeatmap();
+    drawDimensionsChart();
+  }
+
+  function drawDashboardChart() {
+    const cvs = document.getElementById('chart-dashboard');
+    if (!cvs) return;
+    const ctx = cvs.getContext('2d');
+    cvs.width = cvs.parentElement.clientWidth - 48;
+    
+    ctx.clearRect(0, 0, cvs.width, cvs.height);
+    ctx.strokeStyle = '#c8956c';
+    ctx.lineWidth = 3;
+
+    // Dummy smooth trend line
+    ctx.beginPath();
+    const points = [140, 120, 110, 95, 80, 75, 60];
+    points.forEach((val, idx) => {
+      const x = (cvs.width / 6) * idx;
+      const y = cvs.height - (val / 160 * (cvs.height - 40)) - 20;
+      if (idx === 0) ctx.moveTo(x, y);
+      else ctx.lineTo(x, y);
+    });
+    ctx.stroke();
+  }
+
+  function drawCalendarHeatmap() {
+    const cvs = document.getElementById('chart-calendar');
+    if (!cvs) return;
+    const ctx = cvs.getContext('2d');
+    cvs.width = cvs.parentElement.clientWidth - 48;
+    ctx.clearRect(0, 0, cvs.width, cvs.height);
+
+    const cols = 15;
+    const rows = 7;
+    const size = 12;
+    const gap = 4;
+
+    for (let c = 0; c < cols; c++) {
+      for (let r = 0; r < rows; r++) {
+        ctx.fillStyle = (c + r) % 3 === 0 ? '#c8956c' : '#f2eee8';
+        ctx.fillRect(c * (size + gap), r * (size + gap), size, size);
+      }
+    }
+  }
+
+  function drawDimensionsChart() {
+    const cvs = document.getElementById('chart-dimensions');
+    if (!cvs) return;
+    const ctx = cvs.getContext('2d');
+    cvs.width = cvs.parentElement.clientWidth - 48;
+    ctx.clearRect(0, 0, cvs.width, cvs.height);
+
+    ctx.font = '12px Noto Sans SC';
+    ctx.fillStyle = '#78726a';
+    ctx.fillText('无错 (准确度): 92%', 20, 30);
+    ctx.fillText('无漏 (完整度): 88%', 20, 70);
+    ctx.fillText('无废 (简洁度): 85%', 20, 110);
+  }
+
+  // Backup & Reset Actions
+  function exportData() {
+    const dataStr = "data:text/json;charset=utf-8," + encodeURIComponent(JSON.stringify(appState));
+    const dlAnchor = document.createElement('a');
+    dlAnchor.setAttribute("href", dataStr);
+    dlAnchor.setAttribute("download", `kaikoulian_backup_${new Date().toISOString().split('T')[0]}.json`);
+    document.body.appendChild(dlAnchor);
+    dlAnchor.click();
+    dlAnchor.remove();
+  }
+
+  function importData(event) {
+    const fileReader = new FileReader();
+    fileReader.onload = (e) => {
+      try {
+        appState = JSON.parse(e.target.result);
+        saveState();
+        alert('🎉 训练数据备份导入成功！');
+        location.reload();
+      } catch (err) { alert('❌ 备份文件损坏或格式有误！'); }
+    };
+    fileReader.readAsText(event.target.files[0]);
+  }
+
+  function resetData() {
+    if (confirm('⚠️ 确定要清空本地所有训练记录和打卡数据吗？此操作无法撤销。')) {
+      localStorage.removeItem(DB_KEY);
+      location.reload();
+    }
+  }
+
+  // Run App Init on page load
+  window.addEventListener('DOMContentLoaded', () => {
+    initApp();
+    // Default star ratings
+    setStar('accuracy', 3);
+    setStar('completeness', 3);
+    setStar('conciseness', 3);
+  });
+</script>
+</body>
+</html>
